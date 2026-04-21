@@ -1,0 +1,304 @@
+\def\cmdapp{\highlight{sign-lang-ani}}
+\def\pylib{\highlight{sla}}
+
+\chapter{Giải pháp theo dõi chuyển động mắt hỗ trợ cung cấp thông tin đặc trưng thị giác của trẻ rối loạn đọc}
+\label{chap:product}
+% -------------------------------------------------------------------
+% Introduction of the chapter
+% -------------------------------------------------------------------
+\textbf{Chương 4} của khóa luận trình bày nội dung liên quan việc đề xuất và phát triển giải pháp ứng dụng công nghệ theo dõi chuyển động mắt hỗ trợ cung cấp thông tin đặc trưng thị giác của trẻ rối loạn đọc. Giải pháp có thể được sử dụng hỗ trợ giải quyết các bài toán khác nhau như phân tích đặc trưng, phát hiện, phân loại và can thiệp trẻ rối loạn đọc.
+
+% -------------------------------------------------------------------
+% overview
+% -------------------------------------------------------------------
+\section{Tổng quan giải pháp}
+\label{sec:overview}
+\begin{sidewaysfigure}
+    \centering
+    \includegraphics[width=\textwidth]{Chapter4/overview.png}
+    \caption{Tổng quan giải pháp}
+    \label{fig:overview}
+\end{sidewaysfigure}
+
+Khóa luận đã góp phần đề xuất một phương pháp ứng dụng công nghệ theo dõi chuyển động mắt nhằm cung cấp các đặc trưng thị giác của trẻ mắc chứng rối loạn đọc, với mục tiêu hỗ trợ cho các bài toán tiếp theo như phát hiện, phân loại và can thiệp hiệu quả. Hình \ref{fig:overview} minh họa tổng quan kiến trúc của giải pháp, bao gồm các thành phần chính như sau: thiết bị theo dõi chuyển động mắt; mô-đun thu nhận dữ liệu chuyển động mắt; mô-đun nhận diện khu vực quan tâm; mô-đun trích xuất đặc trưng; mô-đun cung cấp thông tin trực quan; cùng với hai mô-đun bổ sung gồm thu nhận dữ liệu hình ảnh khuôn mặt thông qua thiết bị webcam và thu nhận dữ liệu giọng nói. Cụ thể, mô-đun thu nhận dữ liệu chuyển động mắt có nhiệm vụ ghi lại tọa độ điểm nhìn của trẻ trong quá trình thực hiện các nhiệm vụ hiển thị trên màn hình. Các điểm nhìn này sau đó được đưa vào mô-đun trích xuất đặc trưng chuyển động mắt, trong đó kết hợp với thông tin về các khu vực quan tâm được phát hiện từ mô-đun nhận diện khu vực quan tâm. Dựa trên các điểm nhìn tương ứng với từng khu vực, hệ thống tiến hành tính toán các đặc trưng thống kê nhằm phục vụ cho các bài toán tiếp theo như sử dụng học máy để phân loại trẻ rối loạn đọc. Ngoài ra, các đặc trưng chuyển động mắt cũng có thể được thể hiện trực quan dưới nhiều hình thức như bản đồ nhiệt, bản đồ nhiệt động và đường quét thông qua mô-đun cung cấp thông tin trực quan. Bên cạnh đó, hệ thống cũng bao gồm các mô-đun thu nhận dữ liệu hình ảnh khuôn mặt và giọng nói của trẻ trong quá trình thực hiện nhiệm vụ. Việc tích hợp dữ liệu đa phương thức này góp phần cung cấp thêm thông tin hữu ích, phục vụ các bài toán phân tích toàn diện và hỗ trợ can thiệp hiệu quả hơn cho trẻ rối loạn đọc.
+
+Khóa luận này thực hiện nghiên cứu và phát triển mô-đun trích xuất đặc trưng, bao gồm các bước trích xuất đường trượt, hồi quy và đặc trưng thống kê, cũng như mô-đun cung cấp thông tin trực quan. Các mô-đun khác, như thu nhận dữ liệu, nhận diện khu vực quan tâm, và trích xuất đặc trưng điểm dừng, được nghiên cứu và phát triển bởi một cộng sự khác của sinh viên trong dự án tại phòng thí nghiệm Tương tác Người-máy và đã được trình bày trong khóa luận tốt nghiệp trước đó. Tuy nhiên, để đảm bảo tính toàn diện, khóa luận này vẫn mô tả các mô-đun đó nhằm giúp người đọc hiểu rõ toàn bộ phương pháp.
+
+% -------------------------------------------------------------------
+% Data recording
+% -------------------------------------------------------------------
+
+\section{Thu nhận dữ liệu chuyển động mắt, hình ảnh khuôn mặt và giọng nói }
+\label{sec:record}
+Trong quá trình thực nghiệm các giải pháp ứng dụng công nghệ theo dõi chuyển động mắt, các kích thích thị giác (còn gọi là ngữ liệu) sẽ được hiển thị trên màn hình để thu thập dữ liệu từ người tham gia. Đối với các nghiên cứu liên quan đến rối loạn đọc, các kích thích thị giác thường là các loại văn bản, bao gồm từ, câu hoặc đoạn văn, được trình bày bằng ngôn ngữ mà trẻ mắc chứng rối loạn đọc sử dụng. Việc lựa chọn loại ngữ liệu cụ thể sẽ phụ thuộc vào mục tiêu của bài toán nghiên cứu hoặc can thiệp đang được triển khai nhằm hỗ trợ trẻ rối loạn đọc.
+
+Mô-đun thu nhận dữ liệu chuyển động mắt có nhiệm vụ ghi lại chuyển động mắt của trẻ phản ứng với từng ngữ liệu hiện lên trên màn hình ở định dạng dữ liệu điểm nhìn và lưu trữ trong hệ thống. Trong quá trình thực nghiệm, hệ thống cần kết nối với thiết bị theo dõi chuyển động của mắt. Tín hiệu chuyển động của mắt thu được từ thiết bị này được biểu thị trong hệ thống dưới dạng chuỗi các điểm \((x,y,t)\) - trong đó \textit{x} và \textit{y} biểu thị tọa độ ánh mắt của mắt trên màn hình và \textit{t} biểu thị dấu thời gian cho từng điểm dữ liệu. 
+
+Ngoài ra, mô-đun thu nhận dữ liệu hình ảnh khuôn mặt và mô-đun ghi âm giọng nói được thiết kế nhằm ghi lại quá trình trẻ thực hiện các nhiệm vụ, qua đó cung cấp thêm nguồn thông tin bổ sung phục vụ cho các bài toán hỗ trợ trẻ rối loạn đọc trong bối cảnh sử dụng dữ liệu đa phương thức. Mô-đun thu nhận dữ liệu hình ảnh khuôn mặt ghi lại video quá trình trẻ nhìn ngữ liệu hiển thị trên màn hình thông qua thiết bị thu nhận hình ảnh (webcam, laptop, v.v). Trong quá trình thu dữ liệu, mô-đun liên tục đọc các khung hình thu được và lưu vào tệp video, với tốc độ khung hình là 30 khung hình/s cho đến khi kết thúc quá trình ghi.
+
+Mô-đun ghi nhận giọng nói thu âm thanh trong quá trình trẻ đọc các ngữ liệu hiển thị trên màn hình thông qua thiết bị thu nhận âm thanh được kết nối với hệ thống. Thiết bị thu nhận âm thanh ghi âm và viết dữ liệu liên tục vào một tập tin WAV, mỗi mẫu âm thanh có kích thước 1024 byte, định dạng dữ liệu là số nguyên kích thước 16-bit, sử dụng một kênh ghi âm duy nhất, và tốc độ lấy mẫu là 16000 mẫu/s.
+
+Ba mô-đun trên thực hiện việc thu nhận dữ liệu một cách đồng bộ về mặt thời gian thông qua cơ chế khởi tạo đồng thời ba luồng thu nhận dữ liệu gồm chuyển động mắt, hình ảnh khuôn mặt và giọng nói. Các luồng này thực hiện song song ngay khi hệ thống nhận tín hiệu bắt đầu quá trình thu nhận và đồng thời kết thúc tại thời điểm dừng thu dữ liệu, đảm bảo tính nhất quán về thời gian giữa các nguồn dữ liệu.
+
+
+% -------------------------------------------------------------------
+% AOI recognition
+% -------------------------------------------------------------------
+
+\section{Nhận diện khu vực quan tâm }
+\label{sec:aoireg}
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.6\columnwidth]{Chapter4/aoi.png}
+    \caption{Sơ đồ hoạt động của mô-đun nhận diện khu vực quan tâm}
+    \label{fig:aoi}
+\end{figure}
+
+Trong các nghiên cứu liên quan đến rối loạn đọc, việc thiết lập mối tương quan giữa chuyển động mắt và các vị trí cụ thể trong ngữ liệu đầu vào đóng vai trò quan trọng, nhằm xác định những khu vực văn bản hoặc đối tượng có thể gây trở ngại trong quá trình xử lý thông tin của trẻ. Do đó, việc đồng bộ hóa dữ liệu điểm nhìn với bối cảnh ngữ liệu là một yêu cầu thiết yếu. Để đáp ứng yêu cầu này, khóa luận đã xây dựng một mô-đun nhận diện khu vực quan tâm, cho phép tự động phát hiện và định vị các vùng chứa văn bản trong ngữ liệu đầu vào. Mô-đun được phát triển dựa trên nền tảng Tesseract OCR Engine \cite{smith2007overview}, và quy trình nhận diện các khu vực quan tâm (bao gồm từ và vần tiếng Việt) được minh họa trong Hình \ref{fig:aoi}.
+
+\subsection*{\textit{Tiền xử lý}}
+Để cải thiện hiệu suất của thuật toán nhận dạng ký tự quang học, mô-đun tiến hành một chuỗi các bước tiền xử lý hình ảnh trước khi áp dụng Tesseract OCR. Cụ thể, hình ảnh được thu nhỏ xuống một nửa so với kích thước ban đầu và sử dụng phương pháp nội suy INTER\_AREA. Sau đó, hình ảnh sau khi được điều chỉnh kích thước được chuyển đổi từ không gian màu RGB sang hình ảnh xám nhằm đơn giản hóa thông tin màu sắc, giúp tăng độ tương phản giữa nền và văn bản. Cuối cùng, kỹ thuật phân ngưỡng nhị phân được áp dụng, trong đó các pixel có cường độ sáng vượt quá ngưỡng được gán giá trị 0 (đen) và các pixel thấp hơn ngưỡng được gán giá trị 255 (trắng). Kết quả thu được là một ảnh nhị phân với các vùng chứa văn bản hiển thị dưới dạng trắng nổi bật trên nền đen.
+
+\subsection*{\textit{Áp dụng Tesseract OCR Engine}}
+Sau khi thực hiện tiền xử lý, hình ảnh được đưa vào Tesseract để nhận dạng các ký tự. Đầu tiên, Tesseract phân tích các thành phần liên kết được thực hiện với các phác thảo thành phần đã được lưu trữ sẵn, từ đó phát hiện các văn bản nghịch đảo và tạo thành các blob (các phác thảo được tập hợp lại và lồng vào nhau). Các blob được xếp thành dòng văn bản và phân chia thành các từ dựa trên khoảng cách giữa các ký tự. Sau đó, quá trình nhận diễn diễn ra theo hai bước: nhận diện lần lượt từng từ và huấn luyện bộ phân loại thích ứng dựa trên những từ đã đạt yêu cầu để nhận diện chính xác hơn các từ chưa đủ tốt. Cuối cùng, Tesseract xử lý các không gian mờ và kiểm tra giả thuyết để nhận diện chữ hoa nhỏ. Đầu ra của thuật toán Tesseract có dạng một chuỗi các bộ \((t, x_1, x_2, y_1, y_2)\), trong đó \(t\) là ký tự được phát hiện, \(x_1, x_2\) là tọa độ bắt đầu và kết thúc của ký tự theo trục \(x\), \(y_1, y_2\) là tọa độ bắt đầu và kết thúc của ký tự theo trục \(y\).
+
+\subsection*{\textit{Hậu xử lý}}
+Để đáp ứng yêu cầu của các bài toán liên quan đến chuyển động mắt trong ngữ cảnh sử dụng tiếng Việt, các ký tự được nhận dạng bằng Tesseract sẽ trải qua bước hậu xử lý nhằm chuyển đổi thành các âm tiết phù hợp với đặc trưng ngôn ngữ. Đầu tiên, vị trí các ký tự được điều chỉnh bằng cách nhân đôi toạ độ, nhằm khôi phục đúng tỷ lệ với kích thước ban đầu của hình ảnh, vốn đã bị giảm một nửa trong quá trình tiền xử lý. Tiếp theo, quá trình hậu xử lý được xây dựng trên cơ sở hiểu biết về cấu trúc âm tiết tiếng Việt, trong đó mỗi âm tiết thường bao gồm hai thành phần chính: onset (phụ âm đầu) và rime (vần). Dựa trên các ký tự và vị trí tương ứng do Tesseract cung cấp, mô-đun thực hiện nhóm các ký tự thành âm tiết dựa trên khoảng cách giữa các ký tự. Cụ thể, khoảng cách giữa hai từ luôn lớn hơn khoảng cách giữa các ký tự trong cùng một từ, chủ yếu xét theo trục hoành (\(x\)), và trong một số trường hợp xét thêm trục tung (\(y\)) khi khoảng cách vượt quá một ngưỡng xác định. Sau khi nhóm ký tự, mô-đun tiếp tục xử lý theo hướng từ trái sang phải để xác định onset và rime, sử dụng bộ từ điển onset tiếng Việt. Cuối cùng, các tọa độ tương ứng với các thành phần âm tiết được tính toán lại, nhằm phục vụ cho việc đồng bộ hóa với dữ liệu điểm nhìn trong các phân tích tiếp theo. Kết quả của mô-đun là vần và vị trí của vần trong ngữ liệu, được minh họa trong Hình \ref{fig:aoi-result}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.7\columnwidth]{Chapter4/aoi-result.png}
+    \caption{Nhận diện ký tự quang học sử dụng Tesseract (trái) và nhận diện khu vực quan tâm của hệ thống (phải)}
+    \label{fig:aoi-result}
+\end{figure}
+
+% -------------------------------------------------------------------
+% Features extraction
+% -------------------------------------------------------------------
+\section{Trích xuất đặc trưng }
+\label{sec:featextr}
+Đây là mô-đun được thiết kế và triển khai trong khuôn khổ khóa luận này. Sau khi dữ liệu điểm nhìn nhận được từ mô-đun thu nhận dữ liệu chuyển động mắt, hệ thống tiến hành lọc bỏ các điểm nhìn nằm ngoài phạm vi vùng hình ảnh trong tập dữ liệu nhằm đảm bảo tính chính xác của quá trình xử lý. Tiếp theo, dữ liệu được chuyển đến mô-đun trích xuất đặc trưng để xác định các đặc trưng chuyển động mắt thường gặp trong các nghiên cứu liên quan đến rối loạn đọc, bao gồm: điểm dừng, đường trượt và hồi quy. Các đặc trưng này sau đó được sử dụng để tính toán các chỉ số thống kê phục vụ cho các bài toán khác nhau, chẳng hạn như phát hiện trẻ mắc rối loạn đọc sử dụng học máy. Đồng thời, chúng cũng được trực quan hóa và phân tích thông qua mô-đun cung cấp thông tin trực quan, sẽ được mô tả chi tiết trong các phần sau. Trong khuôn khổ của khóa luận, sinh viên đề xuất sử dụng thuật toán PeyeMMV của Krassanakis và cộng sự \cite{krassanakis2023peyemmv} để tính điểm dừng và thuật toán I-VT của Salvucci và cộng sự \cite{salvucci2000identifying} để tính toán đường trượt và hồi quy.  
+
+\subsection{Trích xuất điểm dừng}
+Quá trình tính toán và trích xuất các điểm dừng của mắt là một bước quan trọng trong phân tích dữ liệu chuyển động mắt trong bối cảnh thực nghiệm, vì nó ảnh hưởng trực tiếp đến các bước xử lý tiếp theo, bao gồm tính toán các chỉ số thống kê cũng như triển khai các kỹ thuật trực quan hóa nhằm làm nổi bật các đặc trưng và chiến lược thị giác, cả ở người bình thường lẫn người mắc chứng rối loạn đọc \cite{krassanakis2023peyemmv}. Hiện nay, có hai nhóm thuật toán chính được cộng đồng nghiên cứu về chuyển động mắt chấp nhận rộng rãi: thuật toán dựa trên độ phân tán (I-DT) và thuật toán dựa trên vận tốc (I-VT). Thuật toán I-VT phân loại các điểm dừng và chuyển động trượt dựa trên vận tốc giữa các điểm liên tiếp; trong khi đó, I-DT tận dụng đặc điểm rằng các điểm dừng thường tập trung gần nhau do vận tốc thấp, từ đó xác định điểm dừng là các cụm điểm liên tiếp nằm trong một phạm vi phân tán nhất định \cite{salvucci2000identifying}. Mặc dù I-VT là phương pháp đơn giản và dễ triển khai hơn, một số nghiên cứu đã chỉ ra rằng I-DT có hiệu quả vượt trội trong việc phát hiện điểm dừng của mắt \cite{larsson2010evaluation}. Vì lý do đó, khóa luận này sử dụng thuật toán PeyeMMV, một thuật toán thuộc nhóm I-DT mới được phát triển trong những năm gần đây, để tính toán các điểm dừng trong mô-đun trích xuất đặc trưng.
+
+Cụ thể hơn, thuật toán PeyeMMV được triển khai dựa trên các ngưỡng không gian (\(t_1\) và \(t_2\) cùng với một ngưỡng thời gian tối thiểu. Dữ liệu đầu vào của thuật toán là một danh sách các điểm nhìn được biểu diễn dưới dạng bộ ba \textit{(x, y, t)}, trong đó \textit{x} và \textit{y} là tọa độ không gian của điểm nhìn và \textit{t} là thời điểm tương ứng khi điểm nhìn đó được ghi nhận. Đầu tiên, từ danh sách các điểm nhìn, một cụm điểm dừng được khởi tạo tương ứng với điểm nhìn đầu tiên và điểm này được chọn làm tâm của cụm. Sau đó, tọa độ trung bình được tính toán lặp đi lặp lại nếu nó thỏa mãn khoảng cách Euclide giữa điểm trung bình này và điểm hiện tại nhỏ hơn ngưỡng \(t_1\), với \(t_1\) biểu thị ngưỡng khoảng cách tối đa giữa một điểm nhìn với tâm của cụm trong một cụm điểm dừng. Tiếp theo, với mỗi cụm điểm dừng, các điểm với khoảng cách Euclide tới tâm cụm lớn hơn ngưỡng \(t_2\), với \(t_2\) được xác định dựa trên mức nhiễu không gian được quan sát bằng mắt nhân tạo đối với từng thiết bị theo dõi mắt cụ thể, bị loại bỏ, và toạ độ trung bình mới (tâm của cụm điểm dừng) và khoảng thời gian của cụm được tính toán. Cuối cùng, nếu cụm điểm dừng có khoảng thời gian ngắn hơn ngưỡng thời gian nhỏ nhất, cụm đó sẽ bị loại bỏ. Thông thường, có thể đặt cả hai tham số ở cùng một giá trị \((t_1 = t_2)\), tức là bỏ qua nhiễu không gian vốn có trong thiết bị. Kết quả của thuật toán là các điểm dừng có dạng \((x, y, d, start\_time, end\_time, no\_gaze\_points)\), trong đó \textit{x, y} là toạ độ của điểm dừng, \textit{d }là khoảng thời gian của điểm dừng và \(d = end\_time - start\_time\), và \(no\_gaze\_points\) đại diện cho số lượng điểm nhìn của mắt trong cụm điểm dừng đó. Giải pháp đặt \(t_1 = t_2 = 45\) pixel với mục đích theo dõi các điểm dừng ở cấp vần trong tiếng Việt (thông thường một vần bao gồm 2-3 ký tự) và đặt ngưỡng khoảng thời gian là 150 ms. Trong quá trình này, tọa độ của các vần được mở rộng thêm 100 pixel ở mỗi chiều để giảm thiểu mọi mất mát dữ liệu. Minh họa về thuật toán được thể hiện ở Hình \ref{fig:fixation-algo} và mã giả \ref{alg:peyemmv}.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=\columnwidth]{Chapter4/fixation-algo.png}
+    \caption{Thuật toán PeyeMMV tính toán điểm dừng}
+    \label{fig:fixation-algo}
+\end{figure}
+
+
+\subsection{Trích xuất đường trượt và hồi quy}
+Mặc dù thuật toán I-DT được đánh giá là vượt trội hơn I-VT trong việc xác định điểm dừng, một số nghiên cứu đã chỉ ra rằng I-VT lại có độ chính xác cao hơn trong việc trích xuất các đặc trưng liên quan đến đường trượt và hồi quy của mắt \cite{larsson2010evaluation}. Vì vậy, khóa luận sử dụng thuật toán I-VT để xác định các đường trượt và hồi quy trong mô-đun trích xuất đặc trưng. Đầu vào của thuật toán I-VT giống như đầu vào của thuật toán PeyeMMV được trình bày ở phần trên. Các bước của thuật toán I-VT được minh họa qua Hình \ref{fig:saccade-algo} và mã giả \ref{alg:peyemmv}. 
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=\columnwidth]{Chapter4/saccade-algo.png}
+    \caption{Thuật toán I-VT tính toán đường trượt và hồi quy}
+    \label{fig:saccade-algo}
+\end{figure}
+
+I-VT bắt đầu bằng việc tính toán vận tốc từ điểm tới điểm theo các bước: Trước hết, ta tính khoảng cách giữa hai điểm nhìn (\textit{distance}) thông qua hai cặp tọa độ \((x_1, y_1)\) và \((x_2, y_2)\):
+\[
+\text{distance} = \sqrt{(x_2 - x_1)^2 + (y_2 - y_1)^2} \tag{1}
+\]
+và thời gian giữa hai điểm (theo giây) với \(t_1, t_2\) là hai thời điểm xuất hiện hai điểm nhìn đó:
+\[
+\text{time} = t_2 - t_1 \tag{2}
+\]
+
+Từ khoảng cách và thời gian đã tính được, vận tốc được tính toán thông qua công thức:
+\[
+\text{velocity} = \frac{distance}{time} \tag{3}
+\]
+
+Sau đó, I-VT xác định đường trượt thông qua ngưỡng vận tốc. Thông thường, ngưỡng vận tốc được lựa chọn là 300 độ/s. Nếu vận tốc được tính toán lớn hơn ngưỡng vận tốc thì thuật toán xác định điểm nhìn này là điểm bắt đầu của đường trượt. Từ đây, thuật toán tìm điểm kết thúc tương ứng với điểm bắt đầu đó. Nếu điểm nhìn có vận tốc nhỏ hơn ngưỡng vận tốc thì chọn vị trí gần điểm bắt đầu nhất được tìm thấy là điểm kết thúc của đường trượt. Thời lượng của đường trượt được tính bằng hiệu giữa thời điểm kết thúc và thời điểm bắt đầu. Nếu thời lượng của đường trượt nhỏ hơn ngưỡng thời gian tối thiểu thì đường trượt đó sẽ bị loại bỏ.
+
+Sau khi tính toán điểm bắt đầu và kết thúc, quá trình xác định đường trượt và hồi quy được thực hiện bằng cách phân tích vectơ giữa hai điểm đó. Nếu vectơ này cùng chiều với hướng đọc mà ta đang xét (thông thường là hướng đọc từ trái qua phải) thì đặc trưng này được kết luận là đường trượt. Ngược lại, đặc trưng này là hồi quy. 
+
+Đối với trường hợp văn bản gồm nhiều dòng, khi người đọc kết thúc ở dòng hiện tại và di chuyển xuống dòng tiếp theo, chuyển động của mắt có thể tạo ra những vectơ giữa hai điểm nhìn có chiều ngược với hướng đọc thông thường, nhưng đó không phải là hồi quy. Để giải quyết vấn đề này, khóa luận đã xử lý bằng cách đánh giá sự chênh lệch giữa hai vị trí theo trục \(y\). Nếu giá trị này nhỏ hơn ngưỡng chênh lệch mà khóa luận đề xuất, hệ thống xác định đó là hồi quy.
+
+Một đường trượt hoặc hồi quy bao gồm sáu đại lượng \((t_1, t_2, startx, starty, endx, endy)\), trong đó \(t_1, t_2\) là thời gian của điểm đánh dấu bắt đầu và kết thúc, \(startx, endx\) và \(starty, endy\) là tọa độ điểm đánh dấu bắt đầu và kết thúc của đặc trưng đó.
+
+\begin{algorithm}[H]
+    \small
+    \DontPrintSemicolon
+    \SetAlgoLined
+    \KwIn{Danh sách điểm nhìn $gaze\_points=[(x, y, t)]$; Ngưỡng khoảng cách trong cụm $t_1$; Ngưỡng loại nhiễu không gian $t_2$; Ngưỡng thời gian tối thiểu $min\_duration$}
+    \KwOut{Danh sách điểm dừng dạng $(x, y, d, start\_time, end\_time, no\_gaze\_points)$}
+    
+    $fixations \gets$ [ ] \;
+    $cluster \gets$ [$gaze\_points[0]$] \;
+    $centroid \gets$ ($gaze\_points[0][0], gaze\_points[0][1]$) \;
+    
+    \For{$i \gets 1$ \KwTo $len(gaze\_points) - 1$}{
+        $current \gets$ $gaze\_points[i]$ \;
+        \If{$Euclid(current, centroid) < t_1$}{
+            thêm $current$ vào $cluster$ \;
+            $centroid \gets$ trung\_bình\_tọa\_độ($cluster$) \;
+        }
+        \Else{
+            
+            Loại bỏ các điểm trong $cluster$ nếu $Euclid(point, centroid) > t_2$ \;
+    
+            \If{$cluster$ không rỗng}{
+                $start\_time \gets$ $cluster[0][2]$ \;
+                $end\_time \gets$ $cluster[-1][2]$ \;
+                $duration \gets end\_time - start\_time$ \;
+
+                \If{$duration \geq min\_duration$}{
+                    $x \gets$ trung\_bình($x$ của $cluster$) \;
+                    $y \gets$ trung\_bình($y$ của $cluster$) \;
+                    $n \gets$ $len(cluster)$ \;
+    
+                    thêm $(x, y, duration, start\_time, end\_time, n)$ vào $fixations$ \;
+                }
+            }
+    
+            $cluster \gets$ [$current$] \;
+            $centroid \gets$ ($current[0], current[1]$) \;
+        }
+    }
+
+    \Return $fixations$ \;
+    
+    \caption{Thuật toán PeyeMMV}
+    \label{alg:peyemmv}
+\end{algorithm}
+
+\begin{algorithm}[H]
+    \DontPrintSemicolon
+    \SetAlgoLined
+    \KwIn{Danh sách điểm nhìn $gaze\_points=[(x, y, t)]$, Ngưỡng vận tốc $velocity\_threshold$, Ngưỡng thời gian tối thiểu $min\_duration$, Hướng đọc $reading\_direction$}
+    \KwOut{Danh sách đường trượt $(saccades)$, Danh sách hồi quy $(regressions)$}
+    
+    $saccades \gets$ [ ] \;
+    $regressions \gets$ [ ] \;
+    
+    \For{$i \gets 0$ \KwTo $len(gaze\_points) - 1$}{
+        $v \gets$ vận\_tốc($gaze\_points[i], gaze\_points[i+1]$) \;
+
+        \If{$v > velocity\_threshold$}{
+            $start \gets gaze\_points[i]$ \;
+    
+            \For{$j \gets i+1$ \KwTo $len(gaze\_points) - 1$}{
+                \If{vận\_tốc($gaze\_points[j], gaze\_points[j+1]$) $< velocity\_threshold$}{
+                    end $\gets$ $gaze\_points[j]$ \;
+                    \textbf{break} \;
+                }
+            }
+
+            $duration$ $\gets$ $gaze\_points[end][2] - gaze\_points[start][2]$) \;
+    
+            \If{$duration$ $<$ $min\_duration$}{
+                \textbf{continue} \;
+            }
+
+            \eIf{hướng\_vector($gaze\_points[end]$, $gaze\_points[start]$) cùng chiều với $reading\_direction$}{
+                thêm ($gaze\_points[start], gaze\_points[end]$) vào $saccades$ \;
+            }{
+                thêm ($gaze\_points[start], gaze\_points[end]$) vào $regressions$ \;
+            }
+        }
+        
+        $i \gets end$
+    }
+    
+    \Return $saccades, regressions$ \;
+    \caption{Thuật toán I-VT}
+    \label{alg:i-vt}
+\end{algorithm}
+
+\begin{algorithm}[H]
+    \small
+    \DontPrintSemicolon
+    \SetAlgoLined
+    \KwIn{Danh sách điểm dừng $fixations = [(x, y, t)]$, Hình ảnh kích thích $stimulus\_img$}
+    \KwOut{Bản đồ nhiệt mã hóa màu hợp nhất với hình ảnh đầu vào}
+    
+    \textbf{1. Tạo mặt nạ Gaussian 2D} \;
+    $H, W \gets shape(stimulus\_img)$
+    Tạo $heatmap \gets \mathbf{0}_{H \times W}$ \;
+    
+    \ForEach{$center \in fixations$}{
+        $mask \gets$ GaussianMask($H, W, center$) \;
+        $heatmap \gets heatmap + mask$ \;
+    }
+    
+    \textbf{2. Chuẩn hóa và chuyển về ảnh thang xám 8-bit} \;
+    $heatmap \gets$ chuẩn\_hóa($heatmap$) \;
+    $graymap \gets$ chuyển\_sang\_8bit($heatmap$) \;
+    
+    \textbf{3. Resize bản đồ nhiệt theo kích thước ảnh kích thích} \;
+    $resized\_map \gets$ resize($graymap$, shape=shape($stimulus\_img$)) \;
+    
+    \textbf{4. Áp dụng bản đồ màu Jet} \;
+    $colored\_map \gets$ apply\_colormap($resized\_map$, cmap=Jet) \;
+    
+    \textbf{5. Hợp nhất với ảnh đầu vào} \;
+    $output \gets$ overlay($stimulus\_img$, $colored\_map$, alpha) \;
+    
+    \Return $output$ \;
+    
+    \caption{Tạo bản đồ nhiệt tĩnh từ điểm dừng bằng GMMs}
+    \label{alg:static-heatmap}
+\end{algorithm}
+
+
+\subsection{Trích xuất đặc trưng thống kê}
+Dựa trên các đặc trưng liên quan đến chuyển động mắt của trẻ như điểm dừng, đường trượt và hồi quy, khóa luận tiến hành tính toán các đặc trưng thống kê của chuyển động mắt nhằm phục vụ cho những bài toán hỗ trợ trẻ rối loạn đọc như cung cấp đầu vào cho bài toán phát hiện trẻ rối loạn đọc ứng dụng học máy, phân tích hành vi của trẻ khi đọc hoặc tìm kiếm thông tin trong văn bản, v.v. Các đặc trưng thống kê được trích xuất từ các đặc trưng chuyển động mắt có thể rất đa dạng, bao gồm: số lượng điểm dừng, thời lượng mỗi điểm dừng, số lượng đường trượt và số lượng hồi quy, v.v. Mỗi đặc trưng thống kê này phản ánh một khía cạnh khác nhau của chuyển động mắt \cite{poole2006eye}. Việc lựa chọn các đặc trưng thống kê để sử dụng phụ thuộc vào mục đích cụ thể của từng nghiên cứu.
+
+Đặc trưng điểm dừng có thể trích xuất ra các đặc trưng thống kê, trong đó tổng số lượng điểm dừng, số lượng điểm dừng trong khu vực quan tâm và thời lượng điểm dừng thường được sử dụng phổ biến nhất trong các bài toán hỗ trợ trẻ rối loạn đọc. Tổng số lượng điểm dừng là tổng số lần mắt dừng lại trong một khoảng thời gian nhất định. Tổng số lượng điểm dừng càng nhiều cho thấy việc tìm kiếm và xử lý thông tin kém hiệu quả hơn \cite{goldberg1999computer}. Điều này có thể do việc bố trí giao diện hoặc định dạng văn bản không tối ưu \cite{goldberg1999computer}, hoặc do cách sử dụng từ ngữ trong văn bản chưa thích hợp (chẳng hạn, nhiều từ ngữ dài, khó phát âm hoặc không thông dụng) \cite{hyona1995eye}. 
+
+Bên cạnh tổng số lượng điểm dừng trên ngữ liệu kích thích, các nghiên cứu còn tính toán số lượng điểm dừng trong khu vực quan tâm để khớp thông tin chuyển động mắt của trẻ với bối cảnh ngữ liệu đầu vào \cite{poole2005search}. Điều này giúp chuyên gia quan sát những từ ngữ hoặc đối tượng thu hút sự chú ý của trẻ, hoặc yêu cầu trẻ dành nhiều thời gian và nỗ lực để xử lý. Trong giải pháp này, các điểm dừng sau khi được trích xuất sẽ được kết hợp với danh sách vần và vị trí của vần từ mô-đun nhận diện ký tự quang học, từ đó xác định số lượng điểm dừng thuộc khu vực của vần hoặc ký tự đó. 
+
+Thời lượng điểm dừng cho biết khoảng thời gian mà mắt dừng lại tại một vị trí cụ thể. Thông thường, thời lượng điểm dừng dao động trong khoảng 200 đến 300 ms \cite{mahanama2022eye}. Thời lượng điểm dừng lâu hơn cho thấy khó khăn trong việc trích xuất thông tin, hoặc đối tượng đó thu hút sự chú ý nhiều hơn \cite{salthouse1980determinants}. 
+
+Đối với đường trượt và hồi quy, các đặc trưng thống kê có liên quan thường được sử dụng bao gồm số lượng đường trượt, số lượng hồi quy và biên độ của đường trượt. Số lượng đường trượt đề cập đến số lượng chuyển động mắt nhanh từ vị trí này sang vị trí khác trong toàn bộ quá trình thực hiện một ngữ liệu kích hoặc trong một khu vực quan tâm cụ thể của ngữ liệu đó. Số lượng đường trượt càng nhiều phản ảnh nỗ lực nhiều hơn trong quá trình tìm kiếm và xử lý thông tin thị giác \cite{goldberg1999computer}. Thông thường, số lượng đường trượt sẽ tăng lên tương ứng với độ dài của kích thích \cite{poole2005search}. Tương tự, số lượng hồi quy, hay còn gọi là đường trượt hồi quy, là số lượng những chuyển động nhanh của mắt quay trở lại các vị trí trước đó trong văn bản hoặc trường thị giác \cite{sibert2000reading}. Số lượng hồi quy càng nhiều cho thấy người đọc gặp khó khăn trong việc hiểu nội dung của văn bản, có thể do sự không chắc chắn trong quá trình xử lý thông tin thị giác, hoặc do nội dung của văn bản nhập nhằng, không chứa nhiều thông tin rõ ràng \cite{inhoff2019regressions}. Bên cạnh đó, biên độ của đường trượt cũng được sử dụng như một thước đo khoảng cách mắt di chuyển giữa hai điểm dừng. Biên độ của đường quét lớn cho thấy ở khoảng cách xa có thứ gì đó nổi bật hoặc quan trọng hơn thu hút sự chú ý của người nhìn, khiến cho mắt di chuyển xa hơn để tập trung vào chúng \cite{goldberg2002eye}.
+
+Trong khóa luận này, khóa luận tập trung vào việc sử dụng các đặc trưng thống kê phổ biến nhất và có ý nghĩa rõ rệt nhất, bao gồm tổng số lượng điểm dừng, số lượng điểm dừng trong khu vực quan tâm, thời lượng điểm dừng, cũng như số lượng đường trượt và hồi quy.
+
+% -------------------------------------------------------------------
+%  Visualization
+% -------------------------------------------------------------------
+\section{Cung cấp thông tin trực quan}
+\label{subsec:visualizee}
+Mặc dù việc trích xuất các đặc trưng chuyển động mắt đã cho thấy vai trò quan trọng và hiệu quả trong các bài toán ứng dụng công nghệ theo dõi chuyển động mắt nhằm hỗ trợ trẻ mắc chứng rối loạn đọc, nhu cầu trình bày các kết quả thu được một cách trực quan để hỗ trợ chuyên gia trong quá trình phân tích và đánh giá cũng là một yêu cầu thiết yếu. Do đó, mô-đun trực quan hóa được phát triển với mục tiêu biểu diễn trực quan các đặc trưng chuyển động mắt đã được tính toán từ mô-đun trước, thông qua các hình thức như bản đồ nhiệt tĩnh và động, cũng như biểu diễn đường quét. Đây cũng là một mô-đun được thiết kế và phát triển trong khuôn khổ khóa luận này.
+
+Trước hết, bản đồ nhiệt được sử dụng để phân tích sự phân bố không gian của chuyển động mắt trên toàn cảnh trực quan. Kỹ thuật này có thể áp dụng cho từng người tham gia riêng lẻ hoặc tổng hợp dữ liệu từ nhiều người. Thông thường, bản đồ nhiệt được tạo ra bằng cách áp dụng Mô hình Gaussian hỗn hợp (Gaussian Mixture Models - GMMs), một trong những thuật toán phân cụm phổ biến trong phân tích dữ liệu theo dõi chuyển động mắt \cite{lyu2024optical}. Bên cạnh các thuật toán như K-Means hay Dịch chuyển trung bình (Mean Shift), GMMs cho phép phân cụm mềm, nghĩa là mỗi điểm dữ liệu có thể thuộc về nhiều cụm với các mức độ tham gia khác nhau \cite{lyu2024optical}. Điều này đối lập với phân cụm cứng, trong đó mỗi điểm chỉ được gán cho một cụm duy nhất. Phân cụm mềm đặc biệt hữu ích khi có sự không chắc chắn về ranh giới giữa các cụm. Ngoài ra, GMMs là một thuật toán phân cụm xác suất, cho phép mô hình hóa xác suất một điểm dữ liệu thuộc về từng cụm \cite{lyu2024optical}. Bên cạnh đó, GMMs cũng có thể xử lý hiệu quả các tập dữ liệu lớn. Điều này đặc biệt phù hợp khi phân tích phân bố không gian của dữ liệu chuyển động mắt, khi loại dữ liệu này thường bao gồm số lượng lớn điểm nhìn cố định, trong đó có thể xuất hiện các điểm nhìn nhiễu ảnh hưởng đến quá trình phân cụm \cite{eraslan2020best}. Hơn nữa, các điểm nhìn của người đọc thường có hình dạng phân bố phức tạp và không rõ ràng về mặt cụm \cite{eraslan2020best}. Do đó, GMMs thường được sử dụng để tạo bản đồ nhiệt trong phân tích dữ liệu chuyển động mắt.
+
+Dựa trên những phân tích đã trình bày, GMMs được sử dụng trong hệ thống để xây dựng bản đồ nhiệt tĩnh nhằm trực quan hóa mật độ điểm dừng mắt tương ứng với từng ngữ liệu đầu vào của từng người tham gia, thông qua việc mã hóa tần suất điểm nhìn bằng sắc độ màu sắc \cite{mahanama2022eye}. Cụ thể, mỗi điểm dừng được mô hình hóa dưới dạng một mặt nạ Gaussian hai chiều với kích thước được điều chỉnh tùy theo yêu cầu. Dựa trên các phân phối Gaussian này cùng danh sách các điểm dừng, bản đồ nhiệt được tạo ra, sau đó được chuẩn hóa và chuyển đổi sang định dạng ảnh thang độ xám 8-bit. Tiếp theo, bản đồ nhiệt được thay đổi kích thước để phù hợp với kích thước của hình ảnh kích thích ban đầu và được ánh xạ màu sắc bằng bảng màu Jet nhằm chuyển đổi thành biểu diễn nhiệt dạng màu. Cuối cùng, bản đồ nhiệt này được chồng ghép lên hình ảnh kích thích ban đầu để tạo ra bản đồ nhiệt hoàn chỉnh, trong đó các vùng có màu sắc “nóng” biểu thị các khu vực được nhìn nhiều hơn hoặc trong thời gian lâu hơn. Minh họa cho phương pháp bản đồ nhiệt được trình bày ở Hình \ref{fig:heatmap-pipeline}.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=\columnwidth]{Chapter4/heatmap.png}
+    \caption{Quy trình cung cấp thông tin trực quan bằng bản đồ nhiệt tĩnh}
+    \label{fig:heatmap-pipeline}
+\end{figure}
+
+Bên cạnh bản đồ nhiệt tĩnh, với đầu ra là hình ảnh trực quan biểu thị mật độ điểm nhìn trên một ngữ liệu kích thích cụ thể của từng người tham gia, bản đồ nhiệt động được phát triển nhằm cung cấp thông tin bổ sung về trình tự thời gian của các điểm nhìn, không chỉ biểu diễn phân bố không gian tổng thể như bản đồ nhiệt tĩnh. Trong hệ thống được đề xuất trong khuôn khổ khóa luận, bản đồ nhiệt động được tạo thành từ chuỗi các bản đồ nhiệt tĩnh được xây dựng dựa trên các đoạn dữ liệu đầu vào được phân chia theo mốc thời gian xác định \cite{jaeger2023automation}. Cụ thể, mỗi bản đồ nhiệt tĩnh trong chuỗi này được tạo ra từ dữ liệu điểm nhìn hay vì điểm dừng, do việc phân chia dữ liệu theo thời gian có thể làm mất tính toàn vẹn của các điểm dừng, chẳng hạn như một điểm dừng có thể bị tách thành hai phần nằm ở hai đoạn khác nhau, gây ra sai sót trong quá trình nhận diện. Bên cạnh đó, tốc độ khung hình (frames per second – fps) của bản đồ nhiệt động được xác định dựa trên độ dài thời gian của mỗi đoạn dữ liệu đã được phân chia. Sau khi hoàn tất quá trình xây dựng chuỗi bản đồ nhiệt tĩnh cùng với thông số fps tương ứng, một bản đồ nhiệt động được tạo ra, có khả năng tích hợp và đồng bộ với các nguồn dữ liệu đa phương thức khác như hình ảnh khuôn mặt và giọng nói theo trục thời gian, từ đó cung cấp một góc nhìn toàn diện hơn về hành vi thị giác trong quá trình đọc.
+
+Trong khi bản đồ nhiệt chủ yếu cung cấp cái nhìn tổng quan về mật độ phân bố điểm nhìn thì đường quét lại mang đến thông tin chi tiết về trình tự và diễn tiến của các chuyển động mắt theo thời gian. Phân tích đường quét cho phép xác định vị trí mà người tham gia nhìn đầu tiên, các khu vực thu hút nhiều sự chú ý nhất, cũng như cách thức ánh nhìn di chuyển giữa các vùng khác nhau trên ngữ liệu kích thích. Trong mô-đun cung cấp thông tin trực quan được thiết kế trong khuôn khổ khóa luận, đường quét được tạo ra bằng cách chồng một mặt nạ lên hình ảnh kích thích, trong đó bao gồm các điểm dừng và các đoạn nối liên tiếp giữa chúng biểu thị các đường trượt \cite{mahanama2022eye}. Kích thước của mỗi điểm dừng được xác định theo tỷ lệ thời gian dừng nhìn tại vị trí tương ứng, chuẩn hóa theo điểm dừng có thời gian dài nhất trong tập dữ liệu. Đặc biệt, các đường trượt được phân biệt với các đường hồi quy, vốn biểu thị chuyển động mắt quay trở lại vị trí đã đọc trước đó, thông qua việc sử dụng màu sắc khác biệt. Minh họa cho phương pháp đường quét được mô tả trong Hình \ref{fig:scanpath-pipeline}.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=\columnwidth]{Chapter4/scanpath.png}
+    \caption{Quy trình cung cấp thông tin trực quan bằng đường quét}
+    \label{fig:scanpath-pipeline}
+\end{figure}
+
+
+% -------------------------------------------------------------------
+% Chapter summary
+% -------------------------------------------------------------------
+\section{Kết chương}
+Chương này đã đề xuất quy trình phát triển giải pháp ứng dụng công nghệ theo dõi chuyển động mắt cung cấp thông tin đặc trưng thị giác của trẻ rối loạn đọc, bao gồm các thành phần: mô-đun thu nhận dữ liệu chuyển động mắt, hình ảnh khuôn mặt và giọng nói; mô-đun nhận diện khu vực quan tâm; mô-đun trích xuất đặc trưng; và mô-đun cung cấp thông tin trực quan. Đây là nghiên cứu đầu tiên tập trung vào việc tích hợp các mô-đun này thành một phương pháp toàn diện ứng dụng công nghệ theo dõi chuyển động mắt để tự động cung cấp thông tin về đặc trưng thị giác của trẻ rối loạn đọc. Trong đó, khóa luận tập trung vào hai mô-đun: mô-đun trích xuất đặc trưng (bao gồm đặc trưng đường trượt, hồi quy và các đặc trưng thống kê) và mô-đun cung cấp thông tin trực quan bằng bản đồ nhiệt tĩnh và bản đồ nhiệt động, cũng như đường quét. 
+
+
+
+
+
