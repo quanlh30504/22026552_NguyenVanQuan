@@ -1,195 +1,274 @@
-% -------------------------------------------------------------------
-% Existed studies
-% -------------------------------------------------------------------
-\chapter{Ứng dụng công nghệ theo dõi chuyển động mắt trong hỗ trợ người mắc chứng rối loạn đọc: Hiểu biết, thách thức và cơ hội}
+\chapter{Phương pháp nghiên cứu và thiết kế thực nghiệm}
+\label{chap:methodology}
 
-\textbf{Chương 3} của khóa luận trình bày quá trình tìm hiểu và hệ thống hóa các nghiên cứu đã công bố có liên quan đến ứng dụng công nghệ theo dõi chuyển động mắt trong hỗ trợ người mắc chứng rối loạn đọc. Trên cơ sở đó, khóa luận sẽ đưa ra những nhận định tổng quan về các kết quả đạt được, các hạn chế và thách thức còn tồn tại, cũng như những cơ hội tiềm năng cho nghiên cứu trong tương lai.
+Chương này trình bày phương pháp nghiên cứu và thiết kế thực nghiệm được sử dụng để đánh giá bộ luật WAF trong khóa luận. Nếu Chương 2 tập trung vào nền tảng lý thuyết về WAF, ModSecurity, OWASP CRS, XSS, SQL Injection và các hướng phát hiện liên quan, thì Chương 3 mô tả cách các thành phần đó được đưa vào một quy trình đánh giá có thể tái lập. Trọng tâm của chương là làm rõ cách chuẩn bị dữ liệu, cách gửi payload qua WAF, cách phân loại kết quả thành TP/TN/FP/FN, cách tính các chỉ số đánh giá và cách sử dụng kết quả benchmark để phục vụ phân tích false negative, false positive và tuning.
 
+Trong phạm vi khóa luận, phương pháp nghiên cứu không chỉ nhằm chứng minh rằng một bộ rule có thể chặn được nhiều payload tấn công, mà còn nhằm đo được mức đánh đổi giữa khả năng phát hiện và tỷ lệ chặn nhầm. Vì vậy, các thí nghiệm được thiết kế theo hướng so sánh nhiều cấu hình WAF trên cùng một tập dữ liệu và cùng một bộ chỉ số. Kết quả chi tiết của các thí nghiệm được trình bày ở Chương 5; chương này chỉ tập trung vào phương pháp, công cụ và quy trình thực hiện.
 
-\section{Đặt vấn đề}
+\section{Tổng quan quy trình nghiên cứu}
+\label{sec:research-workflow}
 
-Trong những năm gần đây, công nghệ theo dõi chuyển động mắt đã được ứng dụng rộng rãi trong nghiên cứu về rối loạn đọc và cho thấy nhiều tiềm năng rõ rệt. Tuy nhiên, số lượng công trình nghiên cứu ngày càng gia tăng có thể làm cho các nhà nghiên cứu gặp khó khăn trong việc nắm bắt tổng quan về việc ứng dụng công nghệ theo dõi chuyển động mắt trong lĩnh vực rối loạn đọc, xác định các hướng tiếp cận tiềm năng, cũng như lựa chọn phương pháp phù hợp với mục tiêu nghiên cứu của mình. Bên cạnh đó, mặc dù ngày càng nhiều nhà nghiên cứu có thể tiếp cận thiết bị theo dõi chuyển động mắt nhờ tính phổ biến và tiện dụng của chúng, việc ứng dụng công nghệ này trong nghiên cứu vẫn gặp không ít thách thức. Điều này đặc biệt đúng với các nhà nghiên cứu trong lĩnh vực tâm lý học và giáo dục đặc biệt, do công nghệ này đòi hỏi kiến thức kỹ thuật và công nghệ. Vì vậy, xuất hiện nhu cầu cấp thiết trong việc tổng quan và hệ thống hóa các ứng dụng của công nghệ theo dõi chuyển động mắt trong nghiên cứu về rối loạn đọc. Mặc dù đã có một số công trình đề cập đến việc sử dụng công nghệ này trong bối cảnh rối loạn đọc, phần lớn chỉ tập trung vào một số khía cạnh hoặc hướng tiếp cận cụ thể, chưa có cái nhìn toàn diện \cite{jan2023systematic, hokken2023visual, bucci2021visual}. Vì vậy, khóa luận này được thực hiện với mục tiêu lấp đầy khoảng trống đó bằng cách cung cấp một tổng quan toàn diện về các ứng dụng của công nghệ theo dõi chuyển động mắt trong lĩnh vực rối loạn đọc.
+Quy trình nghiên cứu của khóa luận được xây dựng theo hướng lặp: phân tích hệ thống hiện có, thiết kế cải tiến, đánh giá định lượng, phân tích lỗi và tiếp tục tuning. Cách tiếp cận này phù hợp với bài toán tối ưu WAF vì chất lượng của rule không thể được đánh giá chỉ bằng cách đọc regex. Một rule có thể nhìn hợp lý ở mức cú pháp nhưng vẫn bỏ sót payload bị mã hóa, hoặc chặn nhầm nhiều request hợp lệ khi chạy trên dữ liệu thực tế. Do đó, mỗi thay đổi trong rule cần được kiểm chứng bằng benchmark và audit log~\cite{benchmark-methodology,waf-tuning-methodology}.
 
-\section{Mục tiêu và câu hỏi nghiên cứu}
-Khóa luận đã tiến hành tìm hiểu và hệ thống hóa các nghiên cứu ứng dụng công nghệ theo dõi chuyển động mắt trong hỗ trợ người mắc chứng rối loạn đọc, với ba mục tiêu chính và ba câu hỏi nghiên cứu tương ứng như sau:
+Hình~\ref{fig:research-pipeline-flow} mô tả luồng nghiên cứu tổng quát. Quy trình bắt đầu từ việc khảo sát OWASP CRS và các rule gốc theo hướng enumeration-based. Từ đó, các false negative và false positive được phân tích để xác định hạn chế của cách phát hiện dựa trên danh sách cố định. Tiếp theo, khóa luận thiết kế bộ generalized rules v2 cho XSS và SQLi, triển khai các rule này trên ModSecurity/CRS, chuẩn bị các dataset benchmark, chạy đánh giá, phân tích kết quả và tuning. Bước cuối cùng là so sánh các cấu hình WAF theo cùng bộ metric để rút ra nhận xét.
 
-Trước hết, khóa luận nhằm phân loại và xác định các hướng nghiên cứu mà công nghệ theo dõi chuyển động mắt đã được ứng dụng trong việc hỗ trợ người mắc chứng rối loạn đọc. Cụ thể, khóa luận tập trung xem xét các hướng tiếp cận đã được đề cập trong các nghiên cứu hiện có, từ đó cung cấp một cái nhìn tổng quan về những thành tựu đạt được, cũng như các hạn chế và thách thức còn tồn tại trong từng định hướng nghiên cứu. Trên cơ sở đó, câu hỏi nghiên cứu đầu tiên được đặt ra là:
-
-\textbf{Câu hỏi nghiên cứu 1:} Công nghệ theo dõi chuyển động mắt đã được tiếp cận và ứng dụng trong những khía cạnh cụ thể nào của chứng rối loạn đọc?
-
-Mục tiêu thứ hai của khóa luận là xem xét cách thức triển khai công nghệ theo dõi chuyển động mắt trong các nghiên cứu liên quan đến chứng rối loạn đọc. Để đạt được những kết quả có ý nghĩa và đáng tin cậy, mỗi nghiên cứu cần cân nhắc kỹ lưỡng phương pháp triển khai công nghệ này sao cho phù hợp với từng bài toán cụ thể. Việc tổng hợp và phân tích các cách triển khai sẽ góp phần định hướng chiến lược ứng dụng công nghệ theo dõi chuyển động mắt trong các nghiên cứu tương lai, không chỉ trong lĩnh vực rối loạn đọc mà còn đối với các rối loạn học tập khác. Từ đây, câu hỏi nghiên cứu thứ hai được đưa ra là:
-
-\textbf{Câu hỏi nghiên cứu 2:} Công nghệ theo dõi chuyển động mắt đã được triển khai như thế nào trong các nghiên cứu về rối loạn đọc hiện nay?
-
-Cuối cùng, khóa luận hướng tới việc phân tích mối liên hệ giữa quá trình đọc và dữ liệu thu được từ công nghệ theo dõi chuyển động mắt. Mỗi đặc trưng của chuyển động mắt có thể phản ánh nhiều quá trình nhận thức và hoạt động đọc khác nhau. Do đó, việc lựa chọn các đặc trưng phù hợp sẽ phụ thuộc vào câu hỏi nghiên cứu cụ thể và loại kích thích được sử dụng trong từng nghiên cứu. Vì vậy, câu hỏi nghiên cứu thứ ba được đặt ra là:
-
-\textbf{Câu hỏi nghiên cứu 3:} Mối quan hệ giữa quá trình đọc và các đặc trưng chuyển động mắt trong nghiên cứu hỗ trợ người mắc chứng rối loạn đọc là gì?
-
-\section{Phương pháp luận}
-Phương pháp tìm kiếm và hệ thống hóa các nghiên cứu trong khóa luận này được thực hiện theo hướng dẫn được trình bày trong bài báo \textit{“}\textbf{The PRISMA 2020 statement: an updated guideline for reporting systematic reviews}\textit{”} \cite{page2021prisma}. Hình \ref{fig:prisma} minh họa sơ đồ quy trình tìm kiếm và lựa chọn nghiên cứu. Ở phần tiếp theo, chúng tôi sẽ trình bày chi tiết chiến lược tìm kiếm và quy trình lựa chọn các nghiên cứu được đưa vào phân tích.
-
-\begin{figure}[h]
+\begin{figure}[p]
     \centering
-    \includegraphics[width=0.8\columnwidth]{Chapter3/prisma.png}
-    \caption{Chiến lược tìm kiếm và quy trình lựa chọn nghiên cứu của khóa luận}
-    \label{fig:prisma}
+    \includegraphics[width=0.92\textwidth,height=0.80\textheight,keepaspectratio]{Chapter3/research_pipeline_flow.png}
+    \caption{Quy trình nghiên cứu tổng quát của khóa luận}
+    \label{fig:research-pipeline-flow}
 \end{figure}
 
-\subsection{Chiến lược tìm kiếm}
-Trước hết, khóa luận tiến hành tìm kiếm các bài báo khoa học trên bốn cơ sở dữ liệu điện tử phổ biến và uy tín, bao gồm: Web of Science, Scopus, ScienceDirect và PubMed. Các nghiên cứu được thực hiện trước năm 2000 nhìn chung còn khan hiếm và có thể không còn phù hợp với bối cảnh nghiên cứu hiện tại. Trong khi đó, các nghiên cứu được công bố từ tháng 1 năm 2000 đến tháng 6 năm 2024 thường kế thừa và phát triển từ các kết quả trước đó, đóng vai trò quan trọng trong sự phát triển của việc ứng dụng công nghệ theo dõi chuyển động mắt nhằm hỗ trợ người mắc chứng rối loạn đọc. Do đó, phạm vi phân tích được giới hạn trong các nghiên cứu được công bố từ tháng 1 năm 2000 đến tháng 6 năm 2024. Các từ khóa được sử dụng bao gồm: “\textit{dyslexia}”, “\textit{eye-tracking}”, “\textit{eye movement}” (cả dạng số ít và số nhiều), và “\textit{reading}”, được kết hợp với các toán tử logic thích hợp (AND, OR).
+Có thể chia quy trình trên thành ba giai đoạn chính. Giai đoạn thứ nhất là phân tích, bao gồm việc tìm hiểu CRS, rule gốc và các nhóm payload gây lỗi. Giai đoạn thứ hai là triển khai, bao gồm thiết kế rule v2 và cấu hình môi trường ModSecurity. Giai đoạn thứ ba là đánh giá và tối ưu, bao gồm benchmark trên dataset, phân tích FN/FP, tuning exclusions và so sánh với baseline. Cách chia giai đoạn này giúp quá trình nghiên cứu không bị biến thành việc thêm rule thủ công một cách rời rạc, mà được kiểm soát bằng dữ liệu và chỉ số rõ ràng.
 
-\subsection{Quy trình lựa chọn nghiên cứu}
-Sau khi tìm kiếm trên các cơ sở dữ liệu Web of Science, Scopus, Science Direct và PubMed, chúng tôi thu thập được tổng cộng 1.148 bài báo. Sau khi loại bỏ 50 bài trùng lặp, chúng tôi tiến hành sàng lọc các nghiên cứu còn lại dựa trên tiêu chí chọn và loại trừ được trình bày trong Bảng \ref{tab:criteria}. Giai đoạn sàng lọc ban đầu bao gồm việc xem xét kỹ lưỡng tiêu đề, tóm tắt và từ khóa của từng bài báo. Qua quá trình này, 1.022 bài báo tiếp tục bị loại bỏ. Sau khi đánh giá chi tiết 79 bài báo còn lại, chúng tôi đã lựa chọn 71 nghiên cứu phù hợp để đưa vào phân tích trong khuôn khổ nghiên cứu này.
+\section{Môi trường thực nghiệm}
+\label{sec:experiment-environment}
 
-\begin{table*}[h]
-  \small
-  % \renewcommand{\arraystretch}{2}
-  \caption{Tiêu chí chọn và loại trừ}
-  \centering
-    \begin{tabular}{|>{\centering\arraybackslash}m{0.48\linewidth}|>{\centering\arraybackslash}m{0.48\linewidth}|}
-    \hline
-    \textbf{Tiêu chí đưa vào} & \textbf{Tiêu chí loại trừ}  \\
-    \hline
-    \multicolumn{1}{|>{\raggedright\arraybackslash}m{0.48\linewidth}|}{Bài báo được công bố trên tạp chí khoa học.} & \multicolumn{1}{>{\raggedright\arraybackslash}m{0.48\linewidth}|}{Bài báo là nghiên cứu tổng quan.}\\
-    \hline
-    \multicolumn{1}{|>{\raggedright\arraybackslash}m{0.48\linewidth}|}{Bài báo được viết bằng tiếng Anh.} & \multicolumn{1}{>{\raggedright\arraybackslash}m{0.48\linewidth}|}{Bài báo không được viết bằng tiếng Anh.}\\
-    \hline
-    \multicolumn{1}{|>{\raggedright\arraybackslash}m{0.48\linewidth}|}{Nghiên cứu tập trung vào ứng dụng công nghệ theo dõi chuyển động mắt.} & \multicolumn{1}{>{\raggedright\arraybackslash}m{0.48\linewidth}|}{Nghiên cứu không đề cập đến công nghệ theo dõi chuyển động mắt.}\\
-    \hline
-    \multicolumn{1}{|>{\raggedright\arraybackslash}m{0.48\linewidth}|}{Đối tượng tham gia nghiên cứu bao gồm người mắc chứng rối loạn đọc.} & \multicolumn{1}{>{\raggedright\arraybackslash}m{0.48\linewidth}|}{Đối tượng tham gia nghiên cứu không bao gồm người mắc chứng rối loạn đọc.}\\
-    \hline
-    \end{tabular}
-  \label{tab:criteria}
-\end{table*}
+Môi trường thực nghiệm được thiết kế để mô phỏng tình huống một WAF đứng trước ứng dụng web và kiểm tra request HTTP trước khi request đi vào backend. Thành phần WAF sử dụng ModSecurity tích hợp với OWASP CRS. Các cấu hình benchmark được triển khai bằng Docker để có thể tách biệt từng cấu hình rule và giảm sai lệch khi so sánh. Trong các thí nghiệm chính, CRS được cấu hình ở mức Paranoia Level 4, với ngưỡng inbound anomaly bằng 5. Với ngưỡng này, một rule mức \path|CRITICAL| tương ứng 5 điểm có thể đủ để chặn request.
 
+Ba nhóm cấu hình được dùng làm đối tượng so sánh. Nhóm thứ nhất là OWASP CRS baseline, dùng để đại diện cho cấu hình CRS gốc ở mức nghiêm ngặt. Nhóm thứ hai là rule gốc enumeration-based của nghiên cứu liên quan, đại diện cho hướng cải thiện CRS bằng cách bổ sung nhiều pattern đã biết~\cite{researcher-group-2025}. Nhóm thứ ba là bộ custom generalized rules v2 của khóa luận, tập trung vào XSS và SQLi theo hướng context-aware và semantic detection. Khi so sánh, mục tiêu là giữ cùng cách gửi payload, cùng cách đánh giá status code và cùng công thức metric để kết quả phản ánh khác biệt của rule thay vì khác biệt của framework.
 
-\section{Kết quả}
-Sau khi áp dụng chiến lược tìm kiếm và quy trình lựa chọn nghiên cứu, khóa luận sẽ trình bày kết quả qua hai phần chính. Trước tiên, khóa luận mô tả một số thông tin tổng quan về các bài báo được chọn lọc nhằm cung cấp cái nhìn về xu hướng nghiên cứu sử dụng công nghệ theo dõi chuyển động mắt trong hỗ trợ người mắc chứng rối loạn đọc. Tiếp theo, khóa luận sẽ đánh giá và diễn giải các nghiên cứu dựa trên những khía cạnh liên quan đến rối loạn đọc mà công nghệ theo dõi chuyển động mắt đã đề cập, đồng thời chỉ ra cách công nghệ và các đặc trưng chuyển động mắt được sử dụng, cũng như mối liên hệ giữa chuyển động mắt và quá trình đọc trong các nghiên cứu liên quan đến chứng rối loạn đọc.
+Bảng~\ref{tab:experiment-components} tóm tắt các thành phần chính trong môi trường thực nghiệm. Các thành phần này tương ứng với source code và cấu hình đã được sử dụng trong project thực nghiệm.
 
-\subsection{Tổng quan}
+{\small
+\renewcommand{\arraystretch}{1.2}
+\begin{longtable}{|L{0.22\textwidth}|L{0.31\textwidth}|L{0.37\textwidth}|}
+\caption{Các thành phần chính trong môi trường thực nghiệm}\label{tab:experiment-components}\\
+\hline
+\textbf{Thành phần} & \textbf{Vai trò} & \textbf{Ghi chú triển khai} \\
+\hline
+\endfirsthead
 
-\begin{figure}[h]
+\hline
+\textbf{Thành phần} & \textbf{Vai trò} & \textbf{Ghi chú triển khai} \\
+\hline
+\endhead
+
+ModSecurity và OWASP CRS & Kiểm tra HTTP request, áp dụng rule và tính anomaly score. & Cấu hình benchmark sử dụng PL4 và inbound threshold bằng 5 để đánh giá trong điều kiện nghiêm ngặt. \\
+\hline
+Cấu hình WAF baseline & Đại diện cho CRS gốc hoặc rule gốc enumeration-based. & Được dùng làm mốc so sánh khi đánh giá detection rate và false positive rate. \\
+\hline
+Custom generalized rules v2 & Bộ rule đề xuất cho XSS và SQLi. & Tập trung vào execution context, semantic SQLi pattern, decode pipeline và tuning FP. \\
+\hline
+Benchmark client & Đọc dataset, gửi payload tới WAF và ghi nhận status code. & Luồng chính được tổ chức trong \path|benchmark/main.py| với các module đọc dữ liệu, gửi request, phân loại và sinh báo cáo. \\
+\hline
+Audit log & Lưu thông tin rule match và anomaly score của request. & Được dùng để xác định rule nào gây false positive hoặc đóng góp nhiều điểm bất thường. \\
+\hline
+Report output & Lưu kết quả benchmark và các payload bị bypass. & Framework sinh HTML report, CSV kết quả và file false negatives để phân tích sau thí nghiệm. \\
+\hline
+\end{longtable}
+}
+
+Môi trường trên được sử dụng cho mục đích benchmark và nghiên cứu. Do đó, các cấu hình như PL4 hoặc việc tắt/bật một số rule CRS không nên được hiểu là khuyến nghị triển khai production trực tiếp. Trong môi trường thực tế, ngưỡng anomaly, Paranoia Level và exclusions cần được điều chỉnh theo loại ứng dụng, traffic thực tế và mức chấp nhận rủi ro của hệ thống.
+
+\section{Dữ liệu thực nghiệm}
+\label{sec:datasets}
+
+Dữ liệu thực nghiệm đóng vai trò quan trọng vì WAF cần được đánh giá trên cả payload tấn công và request hợp lệ. Nếu chỉ đánh giá trên payload tấn công, hệ thống có thể đạt recall cao nhưng vẫn không dùng được trong thực tế do false positives lớn. Ngược lại, nếu chỉ đánh giá trên dữ liệu benign, không thể kết luận về khả năng phát hiện tấn công. Vì vậy, khóa luận sử dụng nhiều nguồn dữ liệu với vai trò khác nhau: dataset adversarial để kiểm tra bypass, dataset XSS thực tế để đo khả năng phát hiện, và dataset benign/HTTP traffic để đo FPR.
+
+Bảng~\ref{tab:benchmark-datasets} tóm tắt các dataset được sử dụng trong thiết kế thực nghiệm. Các dataset này không nhất thiết có cùng cấu trúc ban đầu, do đó cần bước chuẩn hóa về dạng chung gồm payload và label trước khi đưa vào benchmark.
+
+{\small
+\renewcommand{\arraystretch}{1.2}
+\begin{longtable}{|L{0.18\textwidth}|L{0.22\textwidth}|L{0.31\textwidth}|L{0.19\textwidth}|}
+\caption{Các dataset dùng trong đánh giá thực nghiệm}\label{tab:benchmark-datasets}\\
+\hline
+\textbf{Dataset} & \textbf{Loại dữ liệu} & \textbf{Vai trò trong đánh giá} & \textbf{Nhãn chính} \\
+\hline
+\endfirsthead
+
+\hline
+\textbf{Dataset} & \textbf{Loại dữ liệu} & \textbf{Vai trò trong đánh giá} & \textbf{Nhãn chính} \\
+\hline
+\endhead
+
+GoTestWAF & Payload kiểm thử WAF và kỹ thuật evasion. & Đo khả năng phát hiện các payload được thiết kế để kiểm tra bypass WAF, đặc biệt với encoding và obfuscation. & Chủ yếu malicious theo từng nhóm tấn công. \\
+\hline
+Mereani XSS & Tập dữ liệu XSS dạng mixed. & Đánh giá khả năng phát hiện XSS trên dữ liệu có cả benign và malicious, đồng thời quan sát false positives. & Benign/malicious. \\
+\hline
+XSSed-DMOZ & Payload XSS và dữ liệu web liên quan. & Bổ sung nguồn XSS thực tế để kiểm tra recall và độ ổn định của rule trên nhiều biến thể payload. & Benign/malicious. \\
+\hline
+CSIC 2010 & HTTP request hợp lệ và bất thường. & Cung cấp traffic HTTP có cấu trúc để kiểm tra hành vi WAF trên request gần với ứng dụng web. & Normal/attack hoặc benign/malicious. \\
+\hline
+ECML & Dữ liệu web/security dạng tổng hợp. & Bổ sung dữ liệu quy mô lớn để quan sát độ ổn định của metrics khi thay đổi phân phối input. & Benign/malicious sau chuẩn hóa. \\
+\hline
+\end{longtable}
+}
+
+Các nguồn như GoTestWAF giúp đánh giá khả năng chống lại payload lẩn tránh~\cite{gotestwaf}. Các nguồn như Mereani XSS và XSSed-DMOZ giúp đánh giá trên tập XSS đa dạng hơn~\cite{mereani-xss-dataset,xssed-dmoz-archive}. CSIC 2010 cung cấp một tập request HTTP thường được dùng trong các nghiên cứu phát hiện tấn công web~\cite{csic2010-dataset}. Việc kết hợp nhiều nguồn dữ liệu giúp kết quả đánh giá bớt phụ thuộc vào một benchmark duy nhất.
+
+\section{Quy trình đọc và chuẩn hóa dữ liệu}
+\label{sec:data-normalization}
+
+Để benchmark có thể chạy thống nhất trên nhiều dataset, dữ liệu đầu vào được chuẩn hóa về dạng bản ghi gồm payload và label. Trong framework thực nghiệm, thành phần \path|DatasetReader| chịu trách nhiệm đọc file CSV, xác định cột chứa payload, xác định cột chứa label và chuyển đổi label về dạng số. Cách làm này giúp framework không phụ thuộc cứng vào một tên cột duy nhất, vì mỗi dataset có thể dùng quy ước đặt tên khác nhau.
+
+Ở mức triển khai, bộ đọc dữ liệu hỗ trợ các alias như \path|payload| hoặc \path|payloads| cho cột chứa nội dung request/payload, và \path|label| hoặc \path|Label| cho cột nhãn. Với nhãn dạng chuỗi, các giá trị như \path|malicious|, \path|xss|, \path|attack| hoặc \path|1| được ánh xạ thành nhãn tấn công; các giá trị như \path|benign|, \path|safe|, \path|normal|, \path|legitimate| hoặc \path|0| được ánh xạ thành nhãn hợp lệ. Sau bước ánh xạ, label được quy ước thống nhất: \path|1| là malicious và \path|0| là benign.
+
+Các dòng dữ liệu không hợp lệ được loại bỏ trước khi benchmark. Ví dụ, bản ghi không có payload, payload rỗng hoặc label không thể ánh xạ về 0/1 sẽ không được đưa vào tập chạy. Đây là bước cần thiết để tránh việc lỗi định dạng dữ liệu bị tính nhầm thành lỗi của WAF. Ngoài ra, việc chuẩn hóa label giúp ma trận TP/TN/FP/FN được tính nhất quán trên mọi dataset, thay vì phụ thuộc vào quy ước nhãn ban đầu của từng nguồn.
+
+Sau khi đọc và chuẩn hóa, mỗi payload được biểu diễn như một bản ghi có chỉ số, nội dung payload và label. Cấu trúc này cho phép framework lưu lại kết quả theo từng dòng dữ liệu, bao gồm status code nhận được từ WAF và classification tương ứng. Nhờ đó, khi xuất hiện false negative hoặc false positive, người nghiên cứu có thể truy ngược về payload cụ thể để phân tích nguyên nhân.
+
+\section{Nguyên tắc làm sạch dữ liệu và tính minh bạch}
+\label{sec:data-cleaning}
+
+Làm sạch dữ liệu là bước nhạy cảm trong đánh giá WAF. Nếu thực hiện đúng, bước này giúp loại bỏ nhiễu do nhãn sai, dòng rỗng hoặc dữ liệu không đại diện cho HTTP input. Nếu thực hiện sai, nó có thể làm lệch kết quả bằng cách loại bỏ các mẫu khó phát hiện. Vì vậy, khóa luận áp dụng nguyên tắc làm sạch dữ liệu theo hướng minh bạch: chỉ loại bỏ các bản ghi có lý do kỹ thuật hoặc nhãn sai rõ ràng, không loại payload tấn công hợp lệ chỉ vì payload đó làm giảm chỉ số của hệ thống.
+
+Các trường hợp cần làm sạch bao gồm payload rỗng, dòng không đọc được, label không thuộc tập nhãn hợp lệ, bản ghi bị lỗi định dạng CSV hoặc mẫu dữ liệu không phản ánh input mà WAF thực sự nhận qua HTTP request. Với các dataset thu thập từ nhiều nguồn, một số bản ghi có thể là đoạn mã JavaScript hoặc HTML dùng cho mục đích minh họa, không phải payload được gửi qua tham số HTTP. Những bản ghi như vậy cần được xem xét cẩn thận để tránh đánh giá WAF trên dữ liệu không đúng ngữ cảnh.
+
+Để bảo đảm tính minh bạch, kết quả trên dữ liệu raw và dữ liệu clean cần được lưu và phân biệt rõ. Dữ liệu raw phản ánh trạng thái ban đầu của nguồn dữ liệu, trong khi dữ liệu clean phản ánh tập được dùng cho đánh giá chính sau khi loại bỏ nhiễu có giải thích. Khi báo cáo kết quả, cần nêu rõ chỉ số nào được tính trên tập nào. Điều này giúp người đọc đánh giá được liệu cải thiện chỉ số đến từ việc tối ưu rule hay chỉ đến từ việc thay đổi tập dữ liệu.
+
+Nguyên tắc trên đặc biệt quan trọng với bài toán false positive. Một request benign bị chặn nhầm có thể là dấu hiệu rule quá rộng, nhưng cũng có thể là bản ghi benign bị gán nhãn sai hoặc chứa mã thực thi không đại diện cho traffic người dùng thông thường. Vì vậy, mỗi nhóm FP lớn cần được phân tích bằng payload cụ thể và audit log thay vì chỉ nhìn vào tổng số lượng.
+
+\section{Thiết kế benchmark framework}
+\label{sec:benchmark-framework}
+
+Benchmark framework được thiết kế để tự động hóa toàn bộ quá trình đánh giá WAF: đọc dataset, gửi payload tới target, ghi nhận phản hồi, phân loại kết quả, tính metrics và sinh báo cáo. Hình~\ref{fig:benchmark-framework-flow} mô tả các thành phần chính trong framework. Thiết kế này giúp việc so sánh nhiều cấu hình WAF trở nên nhất quán, vì cùng một pipeline được dùng cho CRS baseline, rule gốc enumeration-based và custom generalized rules v2.
+
+\begin{figure}[p]
     \centering
-    \includegraphics[width=\columnwidth]{Chapter3/year-chart.jpg}
-    \caption{Số lượng bài nghiên cứu về hỗ trợ người mắc chứng rối loạn đọc ứng dụng công nghệ theo dõi chuyển động mắt}
-    \label{fig:yearchart}
+    \includegraphics[width=0.92\textwidth,height=0.80\textheight,keepaspectratio]{Chapter3/benchmark_framework_flow.png}
+    \caption{Luồng xử lý của benchmark framework}
+    \label{fig:benchmark-framework-flow}
 \end{figure}
 
-Hình \ref{fig:yearchart} minh họa số lượng nghiên cứu sử dụng công nghệ này để hỗ trợ trẻ rối loạn đọc từ tháng 1 năm 2000 đến tháng 6 năm 2024, cho thấy sự quan tâm liên tục đến việc ứng dụng công nghệ theo dõi chuyển động mắt trong nghiên cứu về rối loạn đọc qua các năm. Phần lớn các nghiên cứu được công bố trên các tạp chí chuyên ngành về tâm lý học, giáo dục và khoa học nhận thức. Trong đó, \textit{Brain Sciences} là tạp chí có số lượng bài nhiều nhất với 5 bài, tiếp theo là \textit{PloS One} (4 bài), \textit{Annals of Dyslexia} (4 bài) và \textit{Vision Research} (4 bài). Các tạp chí chuyên sâu về rối loạn đọc hoặc theo dõi chuyển động mắt có số lượng bài ít hơn, trong đó \textit{Annals of Dyslexia} có 4 bài, \textit{Dyslexia} có 2 bài và \textit{Journal of Eye Movement Research} chỉ có 1 bài.
+Luồng chính của framework bắt đầu từ \path|benchmark/main.py|. Đầu tiên, cấu hình được đọc từ file cấu hình, bao gồm URL target, phương thức HTTP, tên tham số chứa payload, đường dẫn dataset, số lượng worker đồng thời, timeout và thư mục output. Sau đó, \path|DatasetReader| đọc dataset và tạo danh sách bản ghi payload. Danh sách này được chuyển cho \path|PayloadDispatcher| để gửi request tới WAF. Khi có phản hồi, \path|ResponseEvaluator| phân loại từng bản ghi thành TP, TN, FP, FN hoặc ERR. Cuối cùng, \path|MetricsCalculator| tính các chỉ số tổng hợp và \path|ReportGenerator| sinh báo cáo.
 
-\subsection{Ứng dụng công nghệ theo dõi chuyển động mắt hỗ trợ người mắc chứng rối loạn đọc}
-\label{sec:sturev}
-Sau khi phân tích các kết quả tìm kiếm, các nghiên cứu được xem xét dựa trên mục tiêu, câu hỏi nghiên cứu và kết quả thu được nhằm xác định các chủ đề chung. Bảng \ref{tab:statistic} tổng hợp bốn hướng nghiên cứu chính cùng các phân nhánh cụ thể liên quan đến rối loạn đọc được phân tích trong khóa luận, bao gồm: phân tích hành vi trong quá trình đọc và tìm kiếm thông tin; phân tích ảnh hưởng của đặc điểm văn bản đến hiệu suất đọc; hỗ trợ chẩn đoán; và hỗ trợ can thiệp cùng với đánh giá hiệu quả can thiệp. Trong đó, phân tích chiến lược đọc và hiểu văn bản là chủ đề được nghiên cứu nhiều nhất. Tổng số bài báo liệt kê trong Bảng \ref{tab:statistic} có thể cao hơn số lượng nghiên cứu được lựa chọn do một số bài đề cập đến nhiều hơn một hướng nghiên cứu. Các phần nội dung tiếp theo của khóa luận sẽ trình bày chi tiết từng hướng nghiên cứu đã được đề cập.
+Thành phần gửi request sử dụng cơ chế bất đồng bộ để có thể benchmark nhiều payload với tốc độ cao hơn so với gửi tuần tự. Với phương thức GET, payload được URL encode và đặt vào query parameter theo tên cấu hình, ví dụ \path|payload|. Với phương thức POST, payload được gửi trong form data. Framework cũng hỗ trợ giới hạn số worker, số kết nối, timeout và retry đối với một số lỗi tạm thời. Các tham số này giúp quá trình benchmark ổn định hơn và tránh việc lỗi mạng ngắn hạn bị hiểu nhầm là quyết định của WAF.
 
-\begin{table*}[h]
-  \small
-  % \renewcommand{\arraystretch}{2}
-  \centering
-  \caption{Số lượng bài báo theo từng hướng nghiên cứu}
-  \begin{tabular}{|l|l|l|}
-    \hline
-    \textbf{Hướng nghiên cứu} & \textbf{Hướng nghiên cứu nhỏ hơn} & \textbf{Số lượng bài báo} \\
-    \hline
-    \multirow{3}{0.3\linewidth}{Phân tích hành vi trong quá trình đọc và tìm kiếm thông tin} & Chiến lược đọc và hiểu văn bản & 16 \\\cline{2-3}
-    & Sự chú ý thị giác và tìm kiếm thông tin & 8 \\\cline{2-3}
-    & Đọc thầm và đọc thành tiếng & 2 \\
-    \hline
-    \multirow{4}{0.3\linewidth}{Phân tích ảnh hưởng của đặc điểm văn bản đến hiệu suất đọc} & Ảnh hưởng của định dạng & 11 \\\cline{2-3}
-    & Ảnh hưởng của đặc điểm từ vựng & 6 \\\cline{2-3}
-    & Ảnh hưởng của hình minh họa và âm thanh & 7 \\\cline{2-3}
-    & Ảnh hưởng của ngôn ngữ & 4 \\
-    \hline
-    \multirow{2}{0.3\linewidth}{Hỗ trợ chẩn đoán} & Hỗ trợ chẩn đoán bằng học máy & 13 \\\cline{2-3}
-    & Các phương pháp khác & 3 \\
-    \hline
-    \multicolumn{2}{|c|}{Hỗ trợ can thiệp và đánh giá hiệu quả can thiệp} & 4 \\
-    \hline
-  \end{tabular}
-  \label{tab:statistic}
-\end{table*}
+Sau khi benchmark, framework sinh các artefact phục vụ phân tích. File HTML report cung cấp cái nhìn tổng quan về metrics và phiên chạy. File CSV lưu kết quả từng payload, bao gồm index, payload, label, status code và classification. File false negatives chứa riêng các payload tấn công không bị chặn, giúp quá trình phân tích bypass tập trung hơn. Cách xuất dữ liệu này phù hợp với khuyến nghị benchmark WAF: không chỉ báo cáo số tổng hợp mà cần giữ lại bằng chứng ở mức từng payload để có thể kiểm tra lại~\cite{defectdojo-waf-testing,benchmark-methodology}.
 
+\section{Ma trận phân loại và các chỉ số đánh giá}
+\label{sec:metrics}
 
-\subsubsection{Phân tích hành vi trong quá trình đọc và tìm kiếm thông tin}
-Nhiều nghiên cứu đã chỉ ra rằng việc phân tích chuyển động mắt có thể cung cấp hiểu biết sâu sắc hơn về hành vi của con người trong quá trình đọc hiểu và tìm kiếm thông tin \cite{netzel2017user}. Trong số 71 bài báo được đánh giá trong khóa luận, có 25 nghiên cứu tập trung vào khía cạnh này. Hầu hết các nghiên cứu đều cho thấy người mắc chứng rối loạn đọc có chuyển động mắt khác biệt so với người đọc bình thường. Cụ thể hơn, 25 nghiên cứu này đã khám phá nhiều khía cạnh liên quan đến kỹ năng đọc và tìm kiếm thông tin ở đối tượng rối loạn đọc thông qua theo dõi chuyển động mắt, bao gồm: chiến lược đọc và mức độ hiểu văn bản; sự chú ý thị giác và khả năng tìm kiếm thông tin, cũng như kỹ năng đọc thầm và đọc thành tiếng.
+Trong bài toán benchmark WAF, quyết định của WAF được suy ra từ HTTP status code. Theo quy ước của framework, status code \path|403| được xem là request bị WAF chặn; các status code khác được xem là request đi qua WAF. Nếu request gặp lỗi mạng hoặc timeout, bản ghi được phân loại là \path|ERR| để tách khỏi ma trận chính. Với quy ước label \path|1| là malicious và \path|0| là benign, ma trận phân loại được trình bày trong Bảng~\ref{tab:confusion-matrix}.
 
+\begin{table}[htbp]
+\centering
+\caption{Ma trận phân loại kết quả benchmark WAF}
+\label{tab:confusion-matrix}
+\renewcommand{\arraystretch}{1.25}
+\begin{tabular}{|L{0.25\textwidth}|C{0.27\textwidth}|C{0.27\textwidth}|}
+\hline
+\textbf{Nhãn thực tế} & \textbf{WAF chặn request (403)} & \textbf{WAF cho đi qua} \\
+\hline
+Malicious & TP: phát hiện đúng tấn công & FN: payload bypass WAF \\
+\hline
+Benign & FP: request hợp lệ bị chặn nhầm & TN: request hợp lệ đi qua đúng \\
+\hline
+\end{tabular}
+\end{table}
 
-\paragraph{Chiến lược đọc và hiểu văn bản.} 
-Trong số 25 bài báo liên quan đến phân tích hành vi trong quá trình đọc và tìm kiếm thông tin, có 16 bài báo tập trung nghiên cứu chiến lược đọc và hiểu văn bản của người mắc rối loạn đọc. Tất cả các nghiên cứu này đều cho thấy sự khác biệt rõ rệt trong chuyển động mắt giữa người mắc chứng rối loạn và người đọc bình thường. Trong đó, điểm dừng là đặc trưng được sử dụng phổ biến nhất, thường được kết hợp với các đặc trưng khác như đường trượt, hồi quy, v.v., tùy theo mục tiêu cụ thể của từng nghiên cứu.
+Từ ma trận trên, các chỉ số chính được tính như sau:
 
-Một nghiên cứu sớm trong hướng nghiên cứu này cho thấy sự khác biệt về tốc độ đọc có liên quan chặt chẽ đến số lượng chuyển động mắt trong quá trình đọc \cite{hawelka2005impaired}. Các nhà nghiên cứu nhận thấy rằng số lượng chuyển động mắt tăng đáng kể khi đọc các dãy số gồm 4 hoặc 6 chữ số, gợi ý rằng người mắc chứng rối loạn đọc có thể gặp khó khăn trong việc xử lý đồng thời nhiều yếu tố. Bên cạnh đó, Jones và cộng sự đã sử dụng công nghệ theo dõi chuyển động mắt để quan sát cách người đọc nhìn vào các chữ cái khi thực hiện nhiệm vụ đọc chúng \cite{jones2008elucidating}. Kết quả cho thấy những người mắc chứng rối loạn đọc gặp nhiều khó khăn hơn trong việc truy xuất mã âm vị và lựa chọn chữ cái chính xác giữa các chữ có hình dạng tương tự, so với người đọc bình thường. Khó khăn trong việc nhận diện chữ cái và phát âm của chúng cũng được thể hiện trong nghiên cứu của Kunert và cộng sự \cite{kunert2014speed}, khi những người mắc chứng rối loạn đọc gặp nhiều trở ngại hơn trong việc xác định các từ không có âm vần giống nhau.
+\begin{align}
+\mathrm{Accuracy} &= \frac{TP + TN}{TP + TN + FP + FN}, \\
+\mathrm{Precision} &= \frac{TP}{TP + FP}, \\
+\mathrm{Recall} &= \frac{TP}{TP + FN}, \\
+\mathrm{F1} &= \frac{2 \times \mathrm{Precision} \times \mathrm{Recall}}{\mathrm{Precision} + \mathrm{Recall}}, \\
+\mathrm{FPR} &= \frac{FP}{FP + TN}.
+\end{align}
 
-Người mắc chứng rối loạn đọc không chỉ gặp khó khăn trong việc xử lý âm vị mà còn gặp vấn đề trong khả năng điều khiển vận động mắt – thị giác. Nghiên cứu của Jainta và cộng sự về khả năng kiểm soát nhãn cầu hai mắt ở người mắc chứng rối loạn đọc cho thấy sự phối hợp giữa hai mắt kém, cùng với sự chênh lệch lớn hơn về vị trí điểm dừng mắt so với người đọc bình thường, dẫn đến sự khó khăn khi đọc hiểu văn bản \cite{jainta2011dyslexic}. Ngoài ra, Seassau và cộng sự đã đánh giá hiệu suất vận động mắt khi thực hiện nhiệm vụ đọc và tìm kiếm thông tin trên một nhóm lớn trẻ em mắc chứng rối loạn đọc, và phát hiện rằng các đặc điểm vận động mắt ở nhóm trẻ này suy giảm rõ rệt so với nhóm trẻ phát triển bình thường \cite{seassau2014binocular}. Những phát hiện này cho thấy rằng các khiếm khuyết trong điều khiển thị giác - vận nhãn có thể ảnh hưởng đến hiệu suất đọc.
+Trong đó, \path|Recall| còn được gọi là detection rate, thể hiện tỷ lệ payload tấn công bị WAF phát hiện. \path|Precision| cho biết trong các request bị chặn, bao nhiêu phần là tấn công thật. \path|FPR| là tỷ lệ chặn nhầm trên tổng số request benign, đây là chỉ số rất quan trọng trong triển khai thực tế. \path|F1-score| cân bằng giữa precision và recall, hữu ích khi muốn so sánh tổng thể nhưng không thay thế được việc phân tích riêng FPR.
 
-Bên cạnh đó, một số nghiên cứu đã thiết kế và phát triển các phương pháp tiếp cận toàn diện trong lĩnh vực này. Franzen và cộng sự đã xây dựng một hồ sơ chi tiết về các đặc trưng chuyển động mắt trong quá trình đọc của người mắc chứng rối loạn đọc \cite{franzen2021individuals}. Hồ sơ này có thể đóng vai trò như một nền tảng quan trọng cho các nghiên cứu trong tương lai, nhằm ứng dụng công nghệ theo dõi chuyển động mắt trong hỗ trợ cho người mắc chứng rối loạn đọc. Ngoài ra, công nghệ theo dõi chuyển động mắt còn được kết hợp với các công nghệ khác, chẳng hạn như điện não đồ (EEG), để hiểu sâu hơn về các quá trình nhận thức ở người mắc chứng rối loạn đọc \cite{weiss2022lateralization}. Một số nghiên cứu cũng đã kết hợp dữ liệu chuyển động mắt với giọng nói để tạo ra đặc trưng “khoảng cách mắt–giọng nói” (eye-voice span), đặc biệt hữu ích trong các bài toán liên quan đến Định danh Tự động Nhanh (Rapid Automatized Naming - RAN) \cite{pan2013eye, jones2016automaticity}. Hơn nữa, một hướng nghiên cứu mới nổi gần đây trong lĩnh vực rối loạn đọc là phân tích quá trình xử lý kích thích phi văn bản ở người mắc chứng rối loạn đọc \cite{aasberg2022left, aasberg2022face}. Phần lớn các nghiên cứu thuộc hướng này sử dụng video - một dạng kích thích vốn ít được áp dụng trong các nghiên cứu trước đây. Mặc dù còn mới mẻ, phương pháp này đã mang lại nhiều phát hiện đáng chú ý.
+Framework tính metrics trên các bản ghi có classification thuộc TP, TN, FP và FN. Các bản ghi \path|ERR| được ghi nhận riêng để người chạy benchmark biết có lỗi hạ tầng, timeout hoặc lỗi mạng, nhưng không đưa vào mẫu số chính của các công thức trên. Cách làm này tránh việc lỗi ngoài WAF làm sai lệch trực tiếp các chỉ số bảo mật, đồng thời vẫn giữ thông tin lỗi để đánh giá độ tin cậy của phiên benchmark.
 
-\paragraph{Sự chú ý thị giác và tìm kiếm thông tin.}
-Chuyển động mắt của người mắc chứng rối loạn đọc cung cấp cái nhìn sâu sắc về cách họ phân bổ chú ý thị giác và tìm kiếm thông tin. Tám nghiên cứu trong số các bài báo được xem xét đã mô tả các đặc điểm này thông qua công nghệ theo dõi chuyển động mắt. Trước hết, nghiên cứu của Prado và cộng sự cho thấy người mắc rối loạn đọc có xu hướng thực hiện nhiều lần dừng mắt sang trái và phải hơn, đồng thời thời gian dừng mắt cũng lâu hơn so với nhóm phát triển bình thường cùng độ tuổi \cite{prado2007eye}. Điều này dẫn đến việc họ chỉ xử lý được một vài chữ cái trong mỗi lần dừng mắt, và số lượng chữ cái được xử lý là tương đương giữa hai nhiệm vụ đọc và tìm kiếm bằng thị giác \cite{wu2018eye, caldani2020visual}.
+\section{Phân tích false negative}
+\label{sec:false-negative-analysis}
 
-Một số nghiên cứu khác ghi nhận sự khác biệt rõ rệt trong hành vi chú ý thị giác và tìm kiếm thông tin giữa người mắc rối loạn đọc và người bình thường khi tương tác với các trang web. Nhóm rối loạn đọc có nhiều lần dừng mắt hơn, tổng thời gian nhìn lâu hơn và thời lượng mỗi lần dừng mắt cũng dài hơn, cho thấy họ gặp nhiều khó khăn hơn trong việc xử lý thông tin từ cấu trúc điều hướng của trang web \cite{al2008examining}. Họ thường tập trung vào các khu vực chứa nhiều văn bản \cite{macfarlane2017visual}, hoặc quan tâm đến các vùng phân tán, trong khi người dùng bình thường chủ yếu chú ý đến các thành phần điều hướng chính \cite{al2008examining}. Ngoài ra, người mắc chứng rối loạn đọc thể hiện kiểu đọc khác biệt so với nhóm phát triển bình thường. Trong khi người bình thường sử dụng chiến lược quét nhanh theo dạng chữ F (tập trung vào bên trái và phía trên của văn bản), thì người rối loạn đọc lại có xu hướng đọc kỹ toàn bộ nội dung trên trang \cite{al2008examining, palani2020eye}.
+False negative là trường hợp payload malicious đi qua WAF mà không bị chặn. Trong bối cảnh WAF, đây là nhóm lỗi liên quan trực tiếp đến khả năng bypass. Tuy nhiên, chỉ biết số lượng FN là chưa đủ để cải thiện rule. Cần phân tích xem payload bypass thuộc kỹ thuật nào, vì mỗi kỹ thuật thường yêu cầu một hướng xử lý khác nhau: bổ sung transform, điều chỉnh regex, thêm context check hoặc mở rộng semantic pattern.
 
-Hiểu rõ những hạn chế về chú ý thị giác và chiến lược tìm kiếm thông tin ở người mắc chứng rối loạn đọc có thể góp phần định hướng việc thiết kế định dạng hoặc cách trình bày văn bản, trang web sao cho tăng cường khả năng tiếp cận nhận thức đối với nhóm đối tượng này.
+Trong project thực nghiệm, script \path|collect_bypasses.py| được dùng để thu thập các payload bị bypass và phân loại sơ bộ theo kỹ thuật. Các nhóm kỹ thuật bao gồm URL-encoded HTML, HTML entity, Base64, SQL comment obfuscation, \path|UNION SELECT|, time-based blind SQLi, string concatenation, event handler, protocol URI và prototype chain. Việc phân loại này không thay thế phân tích thủ công, nhưng giúp tạo bức tranh ban đầu về nhóm bypass nào xuất hiện nhiều.
 
-\paragraph{Đọc thầm và đọc thành tiếng.} 
-Có một số khác biệt trong hành vi đọc của người mắc chứng rối loạn đọc giữa hai hình thức đọc thầm và đọc thành tiếng, mặc dù nguyên nhân đằng sau những khác biệt này vẫn chưa được hiểu rõ. Tuy nhiên, chỉ có hai nghiên cứu sử dụng công nghệ theo dõi chuyển động mắt để so sánh trực tiếp hai hình thức đọc này. De Luca, Maria và cộng sự đã nghiên cứu sự khác biệt giữa đọc thầm và đọc thành tiếng thông qua đặc trưng “khoảng cách mắt–giọng nói” \cite{de2013eye}. Tuy nhiên, nghiên cứu của họ chủ yếu mang tính mô tả và chưa đi sâu vào phân tích các nguyên nhân nhận thức và thần kinh đứng sau những khác biệt này. Smyrnakis và cộng sự đã thiết kế một thí nghiệm nhằm đánh giá hiệu suất đọc của học sinh bình thường và học sinh mắc chứng rối loạn đọc ở ba cấp lớp khác nhau \cite{smyrnakis2021silent}. Kết quả cho thấy học sinh bình thường có hiệu suất đọc thầm vượt trội, trong khi học sinh mắc chứng rối loạn đọc lại thể hiện khả năng đọc thành tiếng tốt hơn. Hiểu rõ hơn về sự khác biệt giữa đọc thành tiếng và đọc thầm có thể góp phần cải thiện các phương pháp đánh giá kỹ năng đọc cũng như phát triển các biện pháp can thiệp phù hợp và hiệu quả hơn.
+Bảng~\ref{tab:fn-techniques} mô tả các nhóm bypass tiêu biểu và ý nghĩa của chúng đối với quá trình cải thiện rule.
 
-\subsubsection{Phân tích ảnh hưởng của đặc điểm văn bản đến hiệu suất đọc}
-Trong số các nghiên cứu được đề cập, có 28 nghiên cứu tập trung vào việc phân tích ảnh hưởng của đặc điểm văn bản đến hiệu suất đọc. Những ảnh hưởng này được chia thành bốn nhóm nhỏ: định dạng (11 nghiên cứu), đặc điểm từ vựng (6 nghiên cứu), hình ảnh và âm thanh (7 nghiên cứu), và ngôn ngữ (4 nghiên cứu).
+{\small
+\renewcommand{\arraystretch}{1.2}
+\begin{longtable}{|L{0.24\textwidth}|L{0.33\textwidth}|L{0.33\textwidth}|}
+\caption{Các nhóm kỹ thuật thường dùng trong phân tích false negative}\label{tab:fn-techniques}\\
+\hline
+\textbf{Nhóm kỹ thuật} & \textbf{Dấu hiệu phân loại} & \textbf{Hướng phân tích rule} \\
+\hline
+\endfirsthead
 
-\paragraph{Ảnh hưởng của định dạng.}
-Trong bốn khía cạnh về đặc điểm văn bản, các nghiên cứu về ảnh hưởng của định dạng chiếm khoảng 40\%. Những nghiên cứu này chỉ ra rằng cách trình bày văn bản có thể ảnh hưởng đáng kể đến hiệu suất đọc của người mắc chứng rối loạn đọc \cite{al2007web}. Định dạng này bao gồm các yếu tố như màu sắc phông chữ và nền, kích cỡ chữ, kiểu chữ, khoảng cách giữa các ký tự, dòng và đoạn, cũng như việc sử dụng bộ lọc màu hoặc lớp phủ. Các nghiên cứu cho thấy việc tăng kích thước chữ và khoảng cách giữa các chữ cái có thể cải thiện hiệu suất đọc của trẻ em mắc chứng rối loạn đọc, thể hiện qua việc giảm thời gian dừng mắt và tăng tần suất cũng như độ dài của các chuyển động saccade \cite{masulli2018effect, luniewska2022effect}. Ngoài ra, trong một nghiên cứu của Jakovljević và cộng sự, một thí nghiệm sử dụng công nghệ theo dõi chuyển động mắt đã được tiến hành để xác định màu nền tối ưu cho trẻ mắc chứng rối loạn đọc. Kết quả cho thấy nền màu ngọc lam, lớp phủ màu ngọc lam và nền màu vàng có thể mang lại lợi ích cho nhóm đối tượng này \cite{jakovljevic2021relation}. Liên quan đến kiểu chữ, Rello và cộng sự đã chỉ ra rằng các phông chữ không chân (sans serif) và kiểu chữ Roman giúp cải thiện hiệu suất đọc khi hiển thị trên màn hình, trong khi chữ in nghiêng lại có tác động tiêu cực \cite{rello2016effect}. Hiệu suất đọc của người mắc chứng rối loạn đọc cũng có thể được cải thiện nhờ việc sử dụng các bộ lọc và lớp phủ màu. Cụ thể, một nghiên cứu cho thấy bộ lọc màu xanh lá có thể nâng cao đáng kể khả năng đọc của trẻ mắc chứng rối loạn đọc \cite{razuk2018effect}, thể hiện qua việc giảm đáng kể thời gian đọc và thời gian dừng mắt so với khi sử dụng bộ lọc màu vàng hoặc không sử dụng bộ lọc. Tác động tương tự cũng được ghi nhận khi sử dụng bộ lọc màu xanh dương \cite{barela2023effect}. Ngoài ra, Rello và cộng sự còn đưa ra một bộ khuyến nghị về cách tùy chỉnh văn bản trên màn hình máy tính dành cho người đọc mắc chứng rối loạn đọc \cite{rello2017present}. Những phát hiện này có ý nghĩa lớn đối với cách trình bày văn bản trên màn hình cũng như các lựa chọn định dạng của các nhà phát triển hoặc nhà thiết kế hướng đến người dùng mắc chứng rối loạn đọc \cite{jou2023developing}.
+\hline
+\textbf{Nhóm kỹ thuật} & \textbf{Dấu hiệu phân loại} & \textbf{Hướng phân tích rule} \\
+\hline
+\endhead
 
+URL-encoded HTML & Payload chứa dạng mã hóa như \path|%3c|, \path|%253c| hoặc unicode escape. & Kiểm tra transform URL decode, số lớp decode và rule nhận diện HTML/script sau decode. \\
+\hline
+HTML entity & Payload chứa \path|&#...|, \path|&lt;|, \path|&gt;| hoặc entity tương tự. & Kiểm tra \path|htmlEntityDecode| và pattern XSS sau khi chuẩn hóa. \\
+\hline
+Base64 & Payload có chuỗi Base64 dài có thể giải mã thành XSS/SQLi. & Xem xét lớp decode Base64 có điều kiện và kiểm tra lại nội dung sau decode. \\
+\hline
+SQL comment obfuscation & Payload dùng comment SQL để chia nhỏ keyword hoặc conditional comment. & Bổ sung semantic pattern có xét comment interleaving và cú pháp đặc thù DBMS. \\
+\hline
+Time-based blind & Payload chứa hàm gây trễ như \path|sleep|, \path|benchmark| hoặc \path|waitfor|. & Kiểm tra coverage đa DBMS và ngữ cảnh gọi hàm với tham số gây trễ. \\
+\hline
+Event handler/protocol URI & Payload chứa event handler hoặc \path|javascript:|, có thể bị chèn khoảng trắng/ký tự điều khiển. & Đánh giá execution context, chuẩn hóa whitespace/null byte và pattern protocol. \\
+\hline
+Prototype chain/string concat & Payload dùng kỹ thuật JavaScript nâng cao để gọi hàm nguy hiểm gián tiếp. & Xem xét lớp heuristic/advanced XSS thay vì chỉ bắt tên hàm trực tiếp. \\
+\hline
+\end{longtable}
+}
 
-\paragraph{Ảnh hưởng của đặc điểm từ vựng.}
-Sáu nghiên cứu đã khảo sát ảnh hưởng của các đặc điểm từ vựng đến hiệu suất đọc của người mắc chứng rối loạn đọc. Các đặc điểm này bao gồm độ dài từ, tần suất xuất hiện, và một số yếu tố liên quan khác. Kết quả cho thấy những đặc trưng từ vựng này có ảnh hưởng rõ rệt đến hiệu suất đọc, thể hiện qua các thay đổi trong chuyển động mắt của người mắc chứng rối loạn đọc. Cụ thể, hiệu suất đọc được cải thiện khi họ tiếp xúc với những từ ngắn và có tần suất xuất hiện cao \cite{rello2013frequent, hawelka2005impaired, rivero2021experimental}. Bên cạnh đó, mặc dù việc đơn giản hóa độ phức tạp từ vựng được cho là có thể tăng khả năng tiếp cận văn bản đối với trẻ mắc chứng rối loạn đọc \cite{gala2016reducing}, không có sự khác biệt đáng kể về mức độ hiểu nội dung giữa người mắc và không mắc chứng này, ngoại trừ sự khác biệt trong đánh giá mức độ dễ đọc của văn bản từ phía người tham gia \cite{rello2013simplify}. Những phát hiện trên cho thấy tầm quan trọng của việc điều chỉnh nội dung văn bản sao cho phù hợp với trình độ đọc khác nhau, từ đó góp phần hỗ trợ hiệu quả hơn trong các biện pháp can thiệp dành cho người mắc chứng rối loạn đọc.
+Kết quả phân tích FN được dùng như backlog cải thiện rule. Nếu nhiều payload bypass cùng thuộc một nhóm, điều đó cho thấy rule hiện tại có khoảng trống về kỹ thuật đó. Ngược lại, nếu FN chỉ là một vài payload dị biệt hoặc nằm ngoài phạm vi nghiên cứu, cần ghi nhận rõ trong phần giới hạn thay vì mở rộng rule quá rộng và làm tăng false positives.
 
-\paragraph{Ảnh hưởng của hình ảnh minh họa và âm thanh.}
-Bên cạnh các đặc điểm từ vựng, bảy nghiên cứu khác đã khám phá ảnh hưởng của hình ảnh minh họa và âm thanh đến hiệu suất đọc của người mắc chứng rối loạn đọc. Trước hết, tác động của hỗ trợ hình ảnh đối với quá trình xử lý văn bản và từ ngữ ở người đọc mắc chứng rối loạn đọc dường như chỉ ở mức độ vừa phải \cite{rivero2021experimental}. Một số nghiên cứu cho thấy hỗ trợ hình ảnh có thể giúp người đọc nhận diện từ trong văn bản dễ dàng hơn, từ đó hỗ trợ dự đoán trước các mục từ, điều này được thể hiện qua việc giảm thời gian nhìn cố định \cite{rivero2021experimental}. Ngoài ra, nhóm người đọc bình thường quan sát hình minh họa nhiều hơn so với nhóm mắc rối loạn đọc, thể hiện qua số lần dừng mắt và thời gian nhìn lâu hơn \cite{wennaas2017reading, holmqvist2017effect}. Điều này cho thấy họ có xu hướng tận dụng thông tin từ hình ảnh, thường xem hình trước khi đọc thay vì sau khi đọc xong. Xu hướng này cũng được ghi nhận trong nghiên cứu của Robertson và cộng sự, trong đó sử dụng công nghệ theo dõi chuyển động mắt kết hợp với nhiệm vụ ghép câu và hình ảnh \cite{robertson2019eye}.
+\section{Phân tích false positive và anomaly score}
+\label{sec:false-positive-analysis}
 
-Bên cạnh hỗ trợ hình ảnh, hỗ trợ bằng âm thanh cũng có khả năng ảnh hưởng đến quá trình đọc của người mắc chứng rối loạn đọc. Ikeshita và cộng sự phát hiện rằng việc kết hợp giữa tô sáng văn bản và đọc thuyết minh bằng âm thanh có thể nâng cao khả năng tiếp cận và hiểu nội dung văn bản kỹ thuật số ở trẻ mắc chứng rối loạn đọc \cite{ikeshita2018effects}. Tuy nhiên, không có sự khác biệt đáng kể nào về ảnh hưởng của hỗ trợ âm thanh đối với chiến lược đọc và thời gian đọc giữa người đọc mắc và không mắc rối loạn đọc. Một hạn chế có thể ảnh hưởng đến kết quả là các nghiên cứu này chủ yếu được thực hiện trên đối tượng học sinh trung học, những người đã có nhiều kinh nghiệm và kỹ năng đọc hơn, cùng với cỡ mẫu còn tương đối nhỏ, có thể ảnh hưởng đến độ tin cậy của kết quả nghiên cứu.
+False positive là trường hợp request benign bị WAF chặn nhầm. Trong triển khai thực tế, FP có thể gây gián đoạn nghiệp vụ nghiêm trọng: người dùng không gửi được form, API hợp lệ bị từ chối hoặc hệ thống sinh quá nhiều cảnh báo. Vì vậy, một bộ rule WAF không thể chỉ tối đa hóa recall mà bỏ qua FPR. Đặc biệt ở PL4, CRS có thể kích hoạt nhiều rule nhạy hơn, làm tăng nguy cơ chặn nhầm nếu không tuning.
 
+Để phân tích FP, project sử dụng audit log của ModSecurity. Script \path|analyze_scores.py| đọc log dạng JSON, trích xuất các message rule match, lấy rule ID và severity, sau đó tính số lần mỗi rule xuất hiện. Rule tổng hợp blocking evaluation như \path|949110| được loại khỏi thống kê rule gây FP vì nó chỉ quyết định chặn dựa trên tổng điểm, không phải rule phát hiện gốc. Với mỗi rule phát hiện, severity được ánh xạ thành điểm: \path|CRITICAL| bằng 5, \path|ERROR| bằng 4, \path|WARNING| bằng 3 và \path|NOTICE| bằng 2.
 
-\paragraph{Ảnh hưởng của ngôn ngữ.}
-\label{subsec:language}
-Đặc điểm của ngôn ngữ đóng vai trò quan trọng trong cả quá trình đọc và xử lý thị giác. Những ngôn ngữ có ánh xạ ký tự–âm thanh nhất quán, tức là mỗi ký tự chỉ tương ứng với một cách phát âm duy nhất, thường có hệ thống chính tả dễ xử lý hơn so với những ngôn ngữ có ánh xạ kém nhất quán \cite{burani2008morpheme}. Tác động của yếu tố ngôn ngữ đối với người mắc chứng rối loạn đọc đã được chứng minh qua bốn nghiên cứu so sánh khả năng đọc trong các ngôn ngữ như tiếng Hy Lạp \cite{hatzidaki2011reading}, tiếng Đức \cite{trauzettel2010eye} và tiếng Trung Quốc \cite{pan2014saccade}. Hatzidaki và cộng sự đã khảo sát ảnh hưởng của chứng rối loạn đọc đến các thành phần xử lý và nhận thức trong tiếng Hy Lạp \cite{hatzidaki2011reading}. Kết quả cho thấy trẻ mắc rối loạn đọc tại Hy Lạp bị ảnh hưởng ít hơn về tốc độ và độ chính xác khi đọc so với những trẻ cùng tình trạng sử dụng tiếng Anh. Kết quả tương tự cũng được ghi nhận trong nghiên cứu về tiếng Đức \cite{trauzettel2010eye}, gợi ý rằng người mắc chứng rối loạn đọc trong các ngôn ngữ có chính tả minh bạch như Hy Lạp và Đức có xu hướng đọc dễ hơn và hiểu tốt hơn so với những người đọc trong ngôn ngữ có hệ thống chính tả phức tạp như tiếng Anh. Khác với các ngôn ngữ sử dụng bảng chữ cái, tiếng Trung Quốc sử dụng hệ thống chữ viết tượng hình. Pan và cộng sự \cite{pan2014saccade} phát hiện rằng người đọc thành thạo tiếng Trung có thể dự đoán vị trí kết thúc của một từ ngay cả trước khi mắt họ dừng lại tại đó, nhờ vào thông tin ngữ cảnh từ các ký tự xung quanh. Tuy nhiên, khả năng này dường như kém phát triển ở những người mắc chứng rối loạn đọc, thể hiện qua việc họ có xu hướng thực hiện các chuyển động mắt ngắn hơn và dừng mắt gần đầu từ hơn.
+Phân tích anomaly score giúp trả lời ba câu hỏi. Thứ nhất, request benign bị chặn bởi một rule mạnh duy nhất hay bởi nhiều rule yếu cộng lại? Thứ hai, rule nào xuất hiện nhiều nhất trong các FP? Thứ ba, rule gây FP có trùng lặp chức năng với custom rules v2 hay không? Nếu một rule CRS tổng quát gây nhiều FP và đã được thay thế bởi rule chuyên biệt hơn trong phạm vi XSS/SQLi, việc tuning bằng exclusion có thể hợp lý. Ngược lại, nếu rule đó là lớp bảo vệ duy nhất cho một nhóm tấn công ngoài phạm vi custom rule, cần cân nhắc rủi ro trước khi tắt.
 
+Quy trình phân tích FP không dừng ở việc đếm rule hits. Sau khi xác định top rule gây FP, cần kiểm tra payload cụ thể, nhãn dữ liệu và ngữ cảnh request. Một rule có thể match nhiều lần trên dữ liệu benign do pattern quá rộng, nhưng cũng có thể do dataset chứa nội dung thực sự đáng ngờ dù được gán nhãn benign. Vì vậy, quyết định tuning cần kết hợp thống kê rule hit, nội dung payload và phạm vi bảo vệ của rule.
 
-\subsubsection{Hỗ trợ chẩn đoán}
-Mười sáu trong số 71 bài báo được đề cập trong khóa luận tập trung vào việc sử dụng các đặc trưng của chuyển động mắt để hỗ trợ chẩn đoán chứng rối loạn đọc. Mặc dù học máy là phương pháp chủ đạo trong lĩnh vực này, các phương pháp khác cũng mang lại những hiểu biết giá trị trong việc phát hiện rối loạn đọc.
- 
-\paragraph{Hỗ trợ chẩn đoán sử dụng học máy}
-Tổng cộng có 13 nghiên cứu đã ứng dụng học máy kết hợp với dữ liệu đặc trưng chuyển động mắt nhằm hỗ trợ phát hiện người mắc chứng rối loạn đọc. Trong số đó, mô hình Support Vector Machine (SVM) là phương pháp được sử dụng phổ biến nhất. Mở đầu là nghiên cứu của Rello và cộng sự, trong đó nhóm tác giả xây dựng một mô hình SVM được huấn luyện trên bộ dữ liệu bao gồm thông tin người tham gia, đặc điểm của tài liệu kích thích (số lượng chữ, kiểu chữ, v.v.), cùng các đặc trưng chuyển động mắt như số lượng điểm dừng, thời lượng điểm dừng trung bình, số lần hồi quy, v.v. \cite{rello2015detecting}. Phương pháp này đạt độ chính xác 80.18\%, đánh dấu bước tiến đầu tiên trong việc ứng dụng dữ liệu chuyển động mắt cho mục tiêu phát hiện rối loạn đọc một cách tự động. SVM tiếp tục được sử dụng trong các nghiên cứu sau đó, với độ chính xác đạt đến 96\% khi khai thác tổng cộng 168 đặc trưng liên quan đến chuyển động mắt \cite{jothi2022prediction}. Bên cạnh đó, Raatikainen và cộng sự đã thử nghiệm mô hình Random Forest để lựa chọn các đặc trưng chuyển động mắt quan trọng nhất từ bộ dữ liệu gồm 165 người tham gia, sau đó sử dụng mô hình SVM để phân loại \cite{raatikainen2021detection}. Tuy nhiên, mô hình huấn luyện từ dữ liệu này chỉ đạt độ chính xác 89.70\%. Một nghiên cứu khác cũng sử dụng Random Forest với một bộ dữ liệu độc lập đạt độ chính xác 81.25\%, phần lớn do giới hạn về quy mô mẫu \cite{el2021predicting}. 
+\section{Quy trình tuning dựa trên dữ liệu}
+\label{sec:tuning-method}
 
-Khác với các nghiên cứu sử dụng các đặc trưng đã trích xuất sẵn như điểm dừng, đường trượt hay hồi quy, nghiên cứu của Boris Nerušil và cộng sự sử dụng trực tiếp các tọa độ \(x-y\) từ điểm nhìn trên màn hình, sử dụng mô hình mạng nơ-ron tích chập ba lớp (3-layer CNN) trên tín hiệu được nội suy theo miền thời gian và đạt độ chính xác vượt trội 96,6\% \cite{neruvsil2021eye}. Ngoài ra, một số nghiên cứu khác còn thử nghiệm các dạng đầu vào khác, chẳng hạn như hình ảnh biểu diễn điểm nhìn khi được đồ thị hóa trên văn bản kích thích \cite{vajs2022spatiotemporal}, và thu được kết quả khả quan. Bên cạnh đó, các nghiên cứu gần đây đã xuất hiện những hướng tiếp cận mới như kết hợp dữ liệu chuyển động mắt với chuỗi thời gian để phân loại người mắc chứng rối loạn đọc \cite{liu2024small}, hoặc sử dụng chuyển động mắt để dự đoán mức độ nghiêm trọng của chứng rối loạn \cite{jothiprabha2023prediction}. Mặc dù còn ở giai đoạn đầu, các hướng tiếp cận này mở ra triển vọng ứng dụng phong phú trong tương lai.
+Tuning trong khóa luận được thực hiện theo nguyên tắc data-driven iterative improvement. Thay vì tắt rule theo cảm tính, mỗi vòng tuning bắt đầu bằng một phiên benchmark và kết quả audit log. Các false negatives cho biết rule còn bỏ sót kỹ thuật nào; các false positives cho biết rule nào quá rộng hoặc không phù hợp với tập traffic mục tiêu. Từ đó, rule hoặc exclusions được điều chỉnh, WAF được reload và benchmark được chạy lại để kiểm tra tác động.
 
-Tuy nhiên, dù các mô hình được huấn luyện trên nhiều bộ dữ liệu khác nhau, hiệu suất cao nhất chủ yếu đến từ các thí nghiệm sử dụng bộ dữ liệu của Benfatto \cite{nilsson2016screening}, điều này đặt ra nghi vấn về khả năng khái quát hóa của các mô hình trong điều kiện thực tiễn. Mặc dù vậy, những nghiên cứu này đã mang lại nhiều hiểu biết quan trọng, góp phần định hướng phát triển các công cụ hỗ trợ chẩn đoán rối loạn đọc trong tương lai. Các nghiên cứu tiếp theo nên tập trung vào việc tích hợp đặc trưng từ các bộ dữ liệu lớn và đa dạng hơn, đồng thời ưu tiên sử dụng dữ liệu chuyển động mắt thu thập trong điều kiện thực tế nhằm nâng cao độ tin cậy và khả năng ứng dụng của các công cụ hỗ trợ chẩn đoán.
+Hình~\ref{fig:tuning-iterative-process} mô tả vòng lặp tuning được sử dụng trong khóa luận. Điểm quan trọng của quy trình này là mỗi thay đổi rule hoặc exclusion đều phải quay lại bước benchmark để kiểm chứng bằng cùng dataset và cùng bộ metric.
 
-\paragraph{Các phương pháp khác}
-Bên cạnh các phương pháp sử dụng học máy trên dữ liệu chuyển động mắt để hỗ trợ phát hiện người mắc chứng rối loạn đọc, ba phương pháp khác cũng đã được áp dụng nhằm nhận diện chứng rối loạn này. Areej Al-Wabil và cộng sự đã giới thiệu một chương trình sàng lọc tương tác dành cho người mắc chứng rối loạn đọc \cite{al2010towards}. Phương pháp này phân tích sự khác biệt trong ánh nhìn và kiểu mẫu đọc giữa người đọc mắc và không mắc rối loạn đọc. Dựa trên các kết quả từ nghiên cứu trước đó, Arwa Al-Edaily và cộng sự đã phát triển hệ thống “Dyslexia Explorer” \cite{al2013dyslexia}. Hệ thống này không chỉ giúp xác định người có hay không mắc rối loạn đọc thông qua việc đánh giá mức độ chú ý thị giác khi đọc chữ viết Ả Rập, mà còn cung cấp các biểu đồ tương tác nhằm phân tích điểm mạnh và điểm yếu của người đọc, phục vụ việc thiết kế các kế hoạch can thiệp phù hợp. Ngoài ra, công cụ Đánh giá Nhanh các Khó khăn và Bất thường trong Đọc (RADAR) cũng đã được phát triển như một phương pháp sàng lọc nhanh các vấn đề về đọc \cite{smyrnakis2017radar}. Phương pháp này đánh giá hiệu quả và độ ổn định của nhiều thông số theo dõi chuyển động mắt qua các lần kiểm tra lại, sau đó tích hợp chúng thành một điểm số có khả năng phân loại trẻ em Hy Lạp mắc chứng rối loạn đọc. Mặc dù các phương pháp thay thế này có thể không đạt độ chính xác cao như các mô hình học máy, chúng vẫn cho thấy tiềm năng trong việc triển khai các chiến lược điều trị cá nhân hóa và theo dõi khách quan hiệu quả của các biện pháp can thiệp được lựa chọn.
+\begin{figure}[p]
+    \centering
+    \includegraphics[width=0.92\textwidth,height=0.82\textheight,keepaspectratio]{Chapter3/tuning_iterative_process.png}
+    \caption{Quy trình tuning lặp dựa trên dữ liệu}
+    \label{fig:tuning-iterative-process}
+\end{figure}
 
+Quy trình tuning gồm các bước sau:
 
-\subsubsection{Hỗ trợ can thiệp và đánh giá hiệu quả can thiệp}
-Chuyển động mắt cũng có thể được sử dụng như một công cụ hỗ trợ quá trình can thiệp và đánh giá hiệu quả của các giai đoạn can thiệp. Bốn chương trình can thiệp được mô tả trong khóa luận này. Trước hết, chương trình huấn luyện sử dụng các kích thích thị giác tùy chỉnh do Caldani và cộng sự phát triển đã cho thấy tác động đáng kể đến hiệu suất và kỹ năng đọc của người mắc chứng rối loạn đọc \cite{caldani2020visual}. Bên cạnh đó, thông qua các quy trình can thiệp, Judica và cộng sự cho rằng loại hình huấn luyện này có thể hỗ trợ quá trình trích xuất thông tin từ các từ ngữ của người mắc chứng rối loạn đọc \cite{judica2002training}. Sau khoảng 5 tháng huấn luyện với các danh sách từ cần đọc, trẻ mắc rối loạn đọc cho thấy thời thời lượng điểm dừng trung bình ngắn hơn đáng kể, cho thấy khả năng xử lý thông tin và hiểu văn bản của các em đã được cải thiện. Ablinger và cộng sự đã xây dựng một chương trình can thiệp đọc dành cho người mắc rối loạn đọc, kết hợp hai phương pháp khác nhau nhằm kích thích chiến lược đọc theo kiểu từ vựng và kiểu phân đoạn \cite{ablinger2014eye}. Phương pháp đọc từ vựng hướng đến việc xử lý toàn bộ từ, trong khi phương pháp phân đoạn tập trung vào việc xử lý tuần tự từng phần tử. Kết quả cho thấy tất cả người tham gia đều có sự cải thiện rõ rệt về hiệu suất đọc, bao gồm việc giảm tổng thời gian đọc, giảm số lượng điểm dừng trên mỗi từ và tăng độ chính xác khi đọc. Bên cạnh đó, Peters và cộng sự đã phát triển một chương trình huấn luyện sử dụng trò chơi hành động, giúp cải thiện đáng kể cả độ chính xác khi đọc văn bản và khả năng hiểu của trẻ mắc chứng rối loạn đọc \cite{peters2021action}. Mặc dù chỉ trải qua 5 giờ huấn luyện, nhóm trẻ được huấn luyện bằng trò chơi hành động cho thấy số lượng điểm dừng và số lượng hồi quy ít hơn so với nhóm đối chứng. Các nghiên cứu trong tương lai có thể tiếp tục đánh giá kết quả can thiệp trong thời gian dài hơn, với kỳ vọng mang lại thêm nhiều tiến bộ trong việc hỗ trợ người mắc rối loạn đọc.
+\begin{enumerate}
+    \item Chạy benchmark trên một hoặc nhiều dataset đã chuẩn hóa.
+    \item Xuất CSV kết quả và danh sách false negatives để phân tích bypass.
+    \item Đọc audit log để xác định rule match, severity và phân phối anomaly score.
+    \item Xác định rule gây FP nhiều hoặc nhóm kỹ thuật gây FN nhiều.
+    \item Cập nhật custom rule hoặc tuning exclusions dựa trên bằng chứng.
+    \item Reload môi trường WAF và chạy lại benchmark.
+    \item So sánh metrics trước/sau để bảo đảm FPR giảm mà recall không suy giảm ngoài mức chấp nhận.
+\end{enumerate}
 
-\section{Thảo luận}
-Khóa luận đã cung cấp cái nhìn toàn diện về việc sử dụng công nghệ theo dõi chuyển động mắt để hỗ trợ người mắc chứng rối loạn đọc, tập trung vào việc trả lời ba câu hỏi nghiên cứu. Phần thảo luận dưới đây sẽ lần lượt giải quyết từng câu hỏi này.
+Với CRS, tuning exclusions thường được thực hiện bằng chỉ thị \path|SecRuleRemoveById|. Tuy nhiên, việc loại bỏ rule cần có nguyên tắc. Một rule chỉ nên được tắt nếu có bằng chứng rõ ràng rằng nó gây FP đáng kể trong tập traffic mục tiêu, hoặc chức năng phát hiện của nó đã được thay thế bởi custom rule có độ đặc hiệu cao hơn, hoặc rule thuộc nhóm ngoài phạm vi nghiên cứu và rủi ro đã được ghi nhận. Không nên tắt một rule chỉ vì nó làm giảm chỉ số trong một benchmark đơn lẻ mà chưa hiểu vai trò bảo vệ của rule đó.
 
-\subsection{Các hướng nghiên cứu sử dụng công nghệ theo dõi chuyển động mắt hỗ trợ người mắc chứng rối loạn đọc}
-Để trả lời cho câu hỏi nghiên cứu đầu tiên, khóa luận đã trình bày tổng quan các hướng nghiên cứu liên quan đến rối loạn đọc sử dụng công nghệ theo dõi chuyển động mắt. Các phát hiện cho thấy công nghệ này từ lâu đã đóng vai trò quan trọng trong nghiên cứu về rối loạn đọc, thể hiện qua số lượng nghiên cứu ngày càng gia tăng. Công nghệ theo dõi chuyển động mắt cũng cho thấy tiềm năng lớn trong việc hỗ trợ người mắc chứng rối loạn đọc, với nhiều hướng nghiên cứu khác nhau bao gồm: phân tích hành vi trong quá trình đọc và tìm kiếm thông tin; phân tích ảnh hưởng của đặc điểm văn bản đến hiệu suất đọc; hỗ trợ chẩn đoán; và hỗ trợ can thiệp cũng như đánh giá hiệu quả can thiệp. Tuy nhiên, các nghiên cứu tập trung vào hỗ trợ can thiệp và đánh giá hiệu quả của can thiệp vẫn còn hạn chế so với ba hướng còn lại. Nguyên nhân chủ yếu là do quá trình can thiệp rối loạn đọc thường đòi hỏi thời gian và nỗ lực dài hạn, kéo dài trong nhiều tháng, gây không ít khó khăn cho quá trình nghiên cứu. Mặc dù vậy, các kết quả đã công bố vẫn mang lại nhiều tín hiệu tích cực. Các nghiên cứu được phân tích trong khóa luận cho thấy chuyển động mắt của người mắc rối loạn đọc có sự thay đổi rõ rệt sau khi tham gia can thiệp, cho thấy công nghệ này có tiềm năng trở thành công cụ hữu ích trong việc hỗ trợ và đánh giá hiệu quả các chương trình can thiệp.
+Trong khóa luận, tuning được xem là một phần của phương pháp nghiên cứu chứ không chỉ là thao tác cấu hình. Mỗi thay đổi tuning cần được đánh giá bằng cùng framework, cùng metric và cùng dataset. Nhờ đó, kết luận về giảm false positives có thể được kiểm chứng bằng số liệu thay vì chỉ dựa trên quan sát thủ công. Kết quả định lượng sau các vòng tuning được trình bày ở Chương 5.
 
-\subsection{Cách công nghệ theo dõi chuyển động mắt được sử dụng}
-Để trả lời cho câu hỏi nghiên cứu thứ hai, khóa luận đã tổng hợp các khía cạnh kỹ thuật và phương pháp được áp dụng trong các nghiên cứu sử dụng công nghệ theo dõi chuyển động mắt trong lĩnh vực rối loạn đọc. Phần lớn các nghiên cứu sử dụng số lượng người tham gia tương đối nhỏ và thường được thực hiện trong môi trường phòng thí nghiệm được kiểm soát chặt chẽ nhằm đánh giá chính xác các quá trình nhận thức. Đối tượng tham gia có độ tuổi đa dạng, từ học sinh tiểu học (hướng đến sàng lọc và can thiệp sớm) đến người trưởng thành mắc rối loạn đọc. Do đó, tài liệu kích thích được thiết kế phù hợp với từng nhóm tuổi: sử dụng chữ cái và từ vựng đơn giản cho trẻ nhỏ, và các văn bản phức tạp hơn cho người lớn. Tuy nhiên, một số mô hình học máy hỗ trợ chẩn đoán lại dựa vào dữ liệu có sẵn từ các nghiên cứu trước đó, điều này có thể làm hạn chế tính ứng dụng trong thực tiễn ở quy mô lớn. Bên cạnh đó, các nghiên cứu thường tập trung vào khía cạnh tâm lý và đặc điểm nhận thức của người mắc rối loạn đọc, nhưng lại thiếu vắng các mô tả chi tiết về mặt kỹ thuật và công nghệ. Điều này có thể gây khó khăn cho các nhà nghiên cứu không thuộc lĩnh vực kỹ thuật chuyên sâu, làm giảm khả năng tiếp cận và ứng dụng rộng rãi của công nghệ. Do đó, cần thiết phải xây dựng các hệ thống hỗ trợ toàn diện và chi tiết, nhằm giúp các nhà nghiên cứu, đặc biệt trong lĩnh vực tâm lý học và giáo dục đặc biệt, có thể chủ động áp dụng công nghệ theo dõi chuyển động mắt trong nghiên cứu về rối loạn đọc.
+\section{Thiết kế so sánh}
+\label{sec:comparison-design}
 
-\subsection{Mối quan hệ giữa quá trình đọc và chuyển động mắt}
-Cuối cùng, để trả lời câu hỏi nghiên cứu thứ ba, khóa luận đã phân tích mối quan hệ giữa quá trình đọc và chuyển động mắt ở người mắc rối loạn đọc. Nhìn chung, các nghiên cứu về rối loạn đọc đều cho rằng công nghệ theo dõi chuyển động mắt có khả năng đánh giá các quá trình nhận thức vốn không thể quan sát trực tiếp, trong khi chuyển động mắt lại dễ quan sát. Hơn nữa, mỗi đặc trưng của chuyển động mắt đều mang ý nghĩa riêng liên quan đến quá trình nhận thức và kỹ năng ngôn ngữ. Trong số đó, điểm dừng là đặc trưng được sử dụng phổ biến nhất trong nghiên cứu rối loạn đọc, với nhiều đặc trưng thống kê khác nhau như số 
-lượng điểm dừng, thời lượng điểm dừng, v.v. Ví dụ, so với nhóm đối chứng, trẻ em mắc rối loạn đọc thường có thời lượng điểm dừng lâu hơn, số lượng điểm dừng nhiều hơn và có xu hướng dừng nhiều lần trên cùng một từ. Điều này cho thấy người đọc bình thường có khả năng dự đoán từ vựng và xử lý từ tốt hơn so với người mắc rối loạn đọc.
+Thiết kế so sánh của khóa luận nhằm đánh giá custom generalized rules v2 trong tương quan với các baseline hợp lý. Baseline thứ nhất là OWASP CRS gốc, đại diện cho rule set chuẩn được dùng rộng rãi. Baseline thứ hai là rule gốc enumeration-based của nhóm nghiên cứu liên quan, đại diện cho hướng bổ sung custom rules dựa trên danh sách payload/pattern cố định~\cite{researcher-group-2025}. Cấu hình thứ ba là bộ generalized rules v2 của khóa luận, tập trung vào XSS và SQLi với execution context, semantic pattern và decode pipeline.
 
+Để so sánh công bằng, các cấu hình cần được chạy trên cùng dataset, cùng cách gửi request và cùng cách phân loại status code. Với mỗi dataset, framework ghi nhận TP, TN, FP, FN, ERR và tính các metric Accuracy, Precision, Recall, F1-score và FPR. Khi một cấu hình có exclusions hoặc tuning riêng, báo cáo cần nêu rõ phạm vi tuning để người đọc hiểu trade-off bảo mật. Đặc biệt, nếu tuning làm giảm FP bằng cách tắt một số rule CRS ngoài phạm vi XSS/SQLi, rủi ro đó cần được thảo luận rõ ở phần hạn chế.
 
-\subsection{Thách thức và cơ hội}
-Mặc dù công nghệ theo dõi chuyển động mắt đã trở thành một công cụ hữu ích trong nghiên cứu về chứng rối loạn đọc, vẫn còn tồn tại một số thách thức. Một trong những vấn đề phổ biến là số lượng người tham gia thường tương đối nhỏ, có thể ảnh hưởng đến khả năng chuẩn hóa và độ tin cậy của kết quả nghiên cứu. Do đó, để nâng cao chất lượng các nghiên cứu trong tương lai, cần cân nhắc nghiêm túc việc thực hiện nghiên cứu trên số lượng người tham gia lớn hơn. Bên cạnh đó, phần lớn các nghiên cứu ứng dụng công nghệ này đều được thực hiện trong môi trường phòng thí nghiệm được kiểm soát chặt chẽ, điều này giúp đảm bảo tính chính xác nhưng lại hạn chế khả năng khái quát hóa kết quả sang các tình huống trong đời sống thực. Ngoài ra, các nghiên cứu hiện nay chủ yếu tập trung vào những khía cạnh riêng lẻ trong lĩnh vực giáo dục đặc biệt hoặc tâm lý học, trong khi các yếu tố kỹ thuật và công nghệ thường chưa được mô tả một cách đầy đủ và rõ ràng. Đặc biệt, gần như chưa có nghiên cứu nào xây dựng một giải pháp toàn diện ứng dụng công nghệ theo dõi chuyển động mắt nhằm hỗ trợ trẻ mắc chứng rối loạn đọc. Vì vậy, các nghiên cứu tương lai nên hướng đến việc trình bày rõ ràng hơn về phương pháp và quy trình ứng dụng công nghệ này trong thực tiễn.
+Ngoài các cấu hình WAF rule-based, khóa luận cũng dùng AI-based detection như một hướng tham chiếu ở mức thảo luận. Mô hình CNN-BiLSTM-Attention và các nghiên cứu học máy liên quan cung cấp mốc so sánh về khả năng phân loại payload trên dataset~\cite{ai-xss-model,ml-waf-comparison}. Tuy nhiên, AI không phải thành phần inline được triển khai trong môi trường ModSecurity của khóa luận. Vì vậy, so sánh với AI chủ yếu nhấn mạnh sự khác biệt về khả năng giải thích, độ trễ, yêu cầu huấn luyện lại và tính phù hợp với vận hành WAF real-time~\cite{ai-vs-rules-waf}.
 
-Nhiều nghiên cứu đã sử dụng công nghệ theo dõi chuyển động mắt để đánh giá ảnh hưởng của định dạng tài liệu đến cách người rối loạn đọc xử lý thông tin. Tuy đạt được những kết quả giá trị, các nghiên cứu này lại bỏ qua tác động của nội dung (chẳng hạn như độ phức tạp của văn bản, đặc điểm từ vựng, v.v.) đến khả năng hiểu của người đọc \cite{jou2023developing, andrychowicz2020processing}. Ngược lại, các nghiên cứu tập trung vào đặc trưng từ vựng lại không xem xét ảnh hưởng của yếu tố định dạng \cite{caldani2020visual, rello2017present}. Để khắc phục, cần tiến hành đánh giá đồng thời cả yếu tố nội dung và hình thức. Ngoài ra, các yếu tố định dạng như màu chữ, màu nền, phông chữ, v.v. có thể chịu ảnh hưởng bởi thói quen và sở thích cá nhân. Tuy nhiên, các nghiên cứu hiện tại vẫn chưa đưa ra được bằng chứng rõ ràng giải thích tại sao một số định dạng lại mang lại hiệu quả cao hơn những định dạng khác \cite{jakovljevic2021relation}.
+Một điểm quan trọng trong thiết kế so sánh là không xem một metric duy nhất là đủ. Recall cao cho thấy WAF phát hiện được nhiều payload tấn công, nhưng nếu FPR cũng cao thì hệ thống khó triển khai. FPR thấp cho thấy ít chặn nhầm, nhưng nếu recall thấp thì hệ thống không đạt mục tiêu bảo vệ. Do đó, phần kết quả cần đọc đồng thời các chỉ số, đặc biệt là cặp Recall--FPR và Precision--F1, thay vì chỉ chọn metric có lợi nhất.
 
-Ngoài ra, phần lớn các nghiên cứu hiện nay cũng chủ yếu tập trung vào trẻ mắc rối loạn đọc sử dụng tiếng Anh hoặc các ngôn ngữ ở châu Âu. Trong khi đó, đặc điểm ngôn ngữ đóng vai trò quan trọng trong quá trình đọc và xử lý thị giác, như đã trình bày ở mục \ref{subsec:language}, cho thấy người mắc chứng rối loạn đọc có tốc độ đọc chậm hơn và khả năng giải mã từ không có nghĩa kém hơn khi đọc các ngôn ngữ có ánh xạ ký tự-âm thanh không nhất quán. Tuy nhiên, cho đến nay, gần như chưa có nghiên cứu nào ứng dụng công nghệ theo dõi chuyển động mắt nhằm hỗ trợ trẻ rối loạn đọc nói tiếng Việt, mặc dù tiếng Việt là một ngôn ngữ có nhiều đặc điểm khác biệt so với tiếng Anh. Trước hết, tiếng Việt là ngôn ngữ có ánh xạ ký tự-âm thanh nhất quán, trong khi tiếng Anh thì ngược lại \cite{umera2008spelling}. Ngoài ra, tiếng Việt có ba loại âm vị: nguyên âm, phụ âm và thanh điệu, còn tiếng Anh chỉ có nguyên âm và phụ âm. Hệ thống nguyên âm trong tiếng Anh phức tạp hơn, trong khi đó tiếng Việt lại có hệ thống nguyên âm mở rộng hơn so với hệ thống nguyên âm trong tiếng Anh. Đặc biệt, Tang và cộng sự nhấn mạnh rằng sự thay đổi về thanh điệu trong tiếng Việt có thể dẫn đến sự thay đổi hoàn toàn về nghĩa \cite{tang2007cross}. Những đặc trưng khác biệt về ngôn ngữ trên đặt ra vấn đề phải xây dựng giải pháp dành cho trẻ rối loạn đọc nói tiếng Việt. Vì vậy, việc nghiên cứu và phát triển giải pháp hỗ trợ trẻ rối loạn đọc có ngôn ngữ mẹ đẻ là tiếng Việt trở nên vô cùng cần thiết.
+\section{Tổng kết chương}
+\label{sec:chapter3-summary}
 
-\section{Kết chương}
-Chương này đã trình bày quá trình tìm hiểu và hệ thống hóa các nghiên cứu hiện có về ứng dụng công nghệ theo dõi chuyển động mắt trong hỗ trợ người mắc chứng rối loạn đọc. Từ đó, khóa luận đã đưa ra những nhận định tổng quan về các kết quả đạt được, các hạn chế còn tồn tại, cũng như những cơ hội tiềm năng cho các nghiên cứu trong tương lai. Những nội dung và phân tích trong chương này đã được trình bày trong bài báo: \textbf{Thi Kieu Chinh Nguyen}, Duc Duy Le, Thanh Ha Le, Thi Cam Huong Nguyen, and Thi Duyen Ngo. "\textbf{The use of eye tracking in supporting individuals with dyslexia: a review}." \textit{Disability and Rehabilitation: Assistive Technology} (2024): 1-16. doi.org/10.1080/17483107.2024.2437697 (Web of Science/Scopus Q1). 
+Chương này đã trình bày phương pháp nghiên cứu và thiết kế thực nghiệm của khóa luận. Quy trình nghiên cứu được tổ chức theo hướng lặp, bắt đầu từ phân tích CRS/rule gốc, thiết kế generalized rules, chuẩn bị dữ liệu, chạy benchmark, phân tích FN/FP và tuning dựa trên audit log. Môi trường thực nghiệm sử dụng ModSecurity/OWASP CRS, các cấu hình WAF khác nhau và benchmark framework tự động để bảo đảm việc so sánh có thể tái lập.
+
+Chương cũng đã mô tả các dataset được sử dụng, quy trình đọc và chuẩn hóa dữ liệu, nguyên tắc làm sạch dữ liệu, ma trận TP/TN/FP/FN và các công thức metric. Các bước phân tích false negative và false positive cho thấy benchmark không chỉ dùng để tạo bảng kết quả, mà còn là công cụ giúp cải thiện rule một cách có hệ thống. Dựa trên phương pháp này, Chương 4 sẽ trình bày chi tiết thiết kế bộ custom generalized rules v2 cho XSS và SQL Injection.

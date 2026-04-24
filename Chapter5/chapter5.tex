@@ -1,151 +1,22 @@
-\chapter{Ứng dụng giải pháp được đề xuất giải quyết bài toán phát hiện chiến lược đọc của trẻ rối loạn đọc nói tiếng Việt}
-\label{chap:experiment}
-% -------------------------------------------------------------------
-% Introduction of the chapter
-% -------------------------------------------------------------------
-Sau khi phát triển giải pháp, khóa luận đã ứng dụng giải pháp đề xuất để giải quyết bài toán phát hiện chiến lược đọc của trẻ rối loạn đọc nói tiếng Việt. Chiến lược đọc của trẻ cho thấy cách thức trẻ nhận dạng và xử lý thông tin từ văn bản. Bài toán phát hiện chiến lược đọc của trẻ rối loạn đọc hỗ trợ chuyên gia nhận biết cách đọc của trẻ, từ đó thiết kế những biện pháp can thiệp phù hợp với đặc trưng của từng trẻ.
+\chapter{Kết quả và đánh giá}
+\label{chap:results}
 
-% -------------------------------------------------------------------
-% Overview of the problem
-% -------------------------------------------------------------------
-\section{Đặt vấn đề}
-\label{sec:ovproblem}
-Đối với những người mắc chứng rối loạn đọc, việc nhận diện các chiến lược đọc đặc thù là vô cùng quan trọng và giàu tiềm năng ứng dụng. Cụ thể, chiến lược đọc phản ánh các kiểu hành vi chuyển động mắt mà người đọc thực hiện trong quá trình nhận dạng và xử lý thông tin từ văn bản, đồng thời có mối liên hệ chặt chẽ với mức độ hiệu quả trong việc tiếp nhận hoặc tìm kiếm thông tin. Do đặc điểm và mức độ rối loạn có thể khác nhau giữa các cá nhân, việc phát hiện chiến lược đọc giúp làm nổi bật các đặc trưng riêng biệt trong hành vi đọc của từng trẻ. Từ đó, các chuyên gia có thể xây dựng và điều chỉnh các phương pháp can thiệp phù hợp nhằm hỗ trợ hiệu quả hơn quá trình học tập của trẻ mắc chứng rối loạn đọc.
+\section{Detection Rate}
+\label{sec:detection-rate}
 
-Xuất phát từ cơ sở trên, khóa luận tập trung giải quyết bài toán phát hiện chiến lược đọc ở trẻ mắc chứng rối loạn đọc sử dụng tiếng Việt, thông qua việc ứng dụng công nghệ theo dõi chuyển động mắt nhằm cung cấp các đặc trưng thị giác đã được nghiên cứu và phát triển trong khuôn khổ khóa luận. Bài toán này được triển khai theo ba bước chính: (1) xây dựng bộ ngữ liệu kích thích đầu vào; (2) áp dụng giải pháp theo dõi chuyển động mắt nhằm trích xuất đặc trưng thị giác phục vụ việc phát hiện chiến lược đọc ở trẻ rối loạn đọc; và (3) phân tích các kết quả thu được từ hệ thống. Quy trình tổng thể của giải pháp được minh họa trong Hình \ref{fig:solution-pipeline}.
+So sánh trên GoTestWAF dataset.
 
-\begin{figure}[h]
-    \centering
-    \includegraphics[width=\columnwidth]{Chapter5/solution-pipeline.png}
-    \caption{Quy trình giải quyết bài toán phát hiện chiến lược đọc của trẻ rối loạn đọc ứng dụng giải pháp theo dõi chuyển động mắt hỗ trợ cung cấp thông tin đặc trưng thị giác}
-    \label{fig:solution-pipeline}
-\end{figure}
+\section{False Positive Reduction}
+\label{sec:fp-reduction}
 
-Trong quy trình này, sinh viên và một cộng sự khác cùng tham gia vào việc xây dựng bộ ngữ liệu đầu vào và triển khai giải pháp thông qua quá trình thực nghiệm. Ở bước phân tích kết quả, khóa luận này tập trung phân tích các bản đồ nhiệt và đường quét. Các phân tích khác liên quan đến đặc trưng thống kê như điểm dừng, đường trượt và hồi quy đã được thực hiện bởi cộng sự khác và trình bày trong khóa luận trước đó. Tuy nhiên, nhằm đảm bảo tính toàn diện, khóa luận này vẫn mô tả đầy đủ toàn bộ kết quả đạt được, bao gồm cả các đặc trưng thống kê và các hình ảnh trực quan hóa thông qua bản đồ nhiệt và đường quét.
+Kết quả tuning giảm 97% FP.
 
-% -------------------------------------------------------------------
-% Designing the input stimuli set
-% -------------------------------------------------------------------
-\section{Xây dựng bộ ngữ liệu đầu vào}
-\label{sec:dessti}
-\begin{figure}[h]
-    \centering
-    \includegraphics[width=\columnwidth]{Chapter5/stimuli-pipeline.png}
-    \caption{Quy trình xây dựng bộ ngữ liệu đầu vào}
-    \label{fig:stimuli-pipeline}
-\end{figure}
-Trước tiên, để phục vụ cho bài toán phát hiện chiến lược đọc của trẻ mắc chứng rối loạn đọc sử dụng tiếng Việt, việc thiết kế một bộ ngữ liệu đầu vào phù hợp là bước quan trọng cần được thực hiện. Bộ ngữ liệu này được xây dựng dựa trên các tài liệu chuyên ngành đã công bố trong lĩnh vực giáo dục đặc biệt, kết hợp với sự tư vấn chuyên môn từ cô Nguyễn Thị Cẩm Hường (Khoa Giáo dục đặc biệt, Trường Đại học Sư phạm Hà Nội), người có nhiều năm kinh nghiệm làm việc trực tiếp với trẻ rối loạn đọc. Đồng thời, quá trình xây dựng cũng tham khảo các tài liệu liên quan đến đặc điểm ngôn ngữ tiếng Việt, cũng như tài liệu thuộc lĩnh vực kỹ thuật và tâm lý. Quy trình thiết kế bộ ngữ liệu được minh họa trong Hình \ref{fig:stimuli-pipeline}. Trước hết, khóa luận tiến hành tìm hiểu và tổng hợp thông tin về các loại ngữ liệu thường được sử dụng trong các nghiên cứu hỗ trợ người rối loạn đọc, đồng thời phân tích các đặc trưng ngôn ngữ học của tiếng Việt. Dựa trên cơ sở lý thuyết này và ý kiến chuyên gia, những ngữ liệu phù hợp với mục tiêu phát hiện chiến lược đọc ở trẻ rối loạn đọc đã được lựa chọn, đảm bảo tính tương thích với đặc trưng ngôn ngữ và độ tuổi người tham gia. Cuối cùng, các ngữ liệu này được điều chỉnh và trình bày lại theo định dạng phù hợp để hình thành một bộ ngữ liệu đầu vào hoàn chỉnh, phục vụ cho quá trình thu thập và phân tích dữ liệu chuyển động mắt.
+\section{Performance Metrics}
+\label{sec:performance}
 
-Bộ ngữ liệu được phân thành sáu loại bài: chữ cái, tiếng, giả từ, từ, câu và văn bản. Đối với các loại ngữ liệu chữ cái, tiếng, giả từ và từ, mỗi loại bao gồm sáu ví dụ được phân bổ đều trong ba hình ảnh minh họa. Ngữ liệu ở cấp độ câu gồm ba ví dụ, mỗi ví dụ trình bày trong một hình riêng biệt. Cuối cùng, ngữ liệu văn bản bao gồm hai đoạn đọc hiểu, mỗi đoạn cũng được thể hiện trong một hình ảnh độc lập. Trong số sáu loại bài tập trên, khóa luận tập trung nghiên cứu và thiết kế ngữ liệu cho các bài liên quan đến cấp độ câu và văn bản. Các ngữ liệu liên quan đến chữ cái, tiếng, giả từ và từ đã được thực hiện bởi cộng sự khác và trình bày trong khóa luận trước đó. Tuy nhiên, để đảm bảo tính toàn vẹn của bài toán, khóa luận này vẫn trình bày tổng thể toàn bộ bộ ngữ liệu.
+Throughput và latency.
 
-Ngữ liệu về chữ cái được thiết kế bao gồm cả chữ cái đơn (ví dụ: “b”) và chữ cái ghép (ví dụ: “iê”), với hai hình thức chữ thường và chữ hoa nhằm đa dạng hóa kiểu trình bày. Đối với ngữ liệu tiếng và giả từ, các ví dụ được lựa chọn bao gồm cả những tiếng phổ biến trong đời sống hàng ngày (ví dụ: “da”) và những tiếng ít xuất hiện hơn (ví dụ: “Giăng”), từ đó tạo ra sự tương phản về mức độ quen thuộc. Tương tự, ngữ liệu về từ bao gồm các từ thông dụng (ví dụ: “quả dưa”), từ ít gặp (ví dụ: “bức trướng”) và cả từ láy (ví dụ: “cao lênh khênh”), nhằm đảm bảo độ phong phú về loại hình từ vựng. Ngữ liệu ở cấp độ câu được xây dựng sao cho mỗi câu chỉ chiếm đúng một dòng văn bản, với cỡ chữ tương thích với các loại ngữ liệu trước. Trong các câu này, có chủ đích chèn vào những từ ngữ khó hoặc dễ gây nhầm lẫn trong quá trình đọc (ví dụ: “nhoẻn”), nhằm làm nổi bật những khó khăn mà trẻ mắc chứng rối loạn đọc có thể gặp phải. Đặc biệt, toàn bộ ngữ liệu đều hướng tới việc đưa vào các từ có chứa các cặp chữ cái thường gây nhầm lẫn ở trẻ rối loạn đọc, chẳng hạn như “b” – “d”, “q” – “p”, "n" - "u". Ngoài ra, việc cân đối độ dài từ (từ 2 đến 6 ký tự) và mức độ phổ biến của từ ngữ cũng được chú trọng, bởi đây là những yếu tố có thể ảnh hưởng rõ rệt đến khả năng xử lý thông tin ngôn ngữ của trẻ mắc chứng rối loạn đọc \cite{rello2013frequent}.
+\section{So sánh với Rule gốc}
+\label{sec:comparison-original}
 
-Đối với ngữ liệu văn bản, khóa luận đã chọn hai đoạn văn từ sách giáo khoa tiếng Việt, đảm bảo nội dung phù hợp và mức độ khó tương thích với đối tượng nghiên cứu là học sinh tiểu học. Hai văn bản này có độ dài gần tương đương nhau, khoảng 60 tiếng mỗi văn bản, nhưng được thiết kế với hai cấp độ khó khác nhau. Việc phân loại độ khó dựa trên các nghiên cứu trước đó, khẳng định rằng mức độ phức tạp của văn bản có ảnh hưởng đáng kể đến khả năng đọc hiểu của trẻ mắc rối loạn đọc \cite{gala2016reducing}.
-
-Bên cạnh đó, do định dạng và cách trình bày văn bản cũng ảnh hưởng đến quá trình đọc và xử lý thông tin của trẻ mắc rối loạn đọc \cite{rello2017present}, giải pháp trong khóa luận đã triển khai việc hiển thị ngữ liệu đầu vào theo hai định dạng khác nhau: định dạng mặc định với cỡ chữ 30pt và định dạng hiệu chỉnh với cỡ chữ 90pt. Cả hai định dạng sử dụng phông chữ VNI-Avo, loại phông chữ phổ biến trong sách giáo khoa Tiếng Việt. Ngoài ra, đối với định dạng hiệu chỉnh, khoảng cách giữa các dòng được giãn 1.5 lần, còn khoảng cách giữa các từ được tăng lên gấp ba lần so với định dạng mặc định. Việc thử nghiệm hai định dạng này được thực hiện theo hai pha riêng biệt, trong đó ngữ liệu định dạng mặc định được sử dụng trước. Giữa hai pha, bài đọc tên màu (minh họa tại Hình \ref{fig:strooptest}) được áp dụng nhằm hạn chế ảnh hưởng của trí nhớ đối với ngữ liệu đã thực hiện trong pha trước đó.
-
-\begin{figure}[h]
-    \centering
-    \includegraphics[width=\columnwidth]{Chapter5/strooptest.png}
-    \caption{Bài đọc tên màu giữa hai pha}
-    \label{fig:strooptest}
-\end{figure}
-
-% -------------------------------------------------------------------
-% Application
-% -------------------------------------------------------------------
-\section{Ứng dụng giải pháp theo dõi chuyển động mắt hỗ trợ cung cấp thông tin đặc trưng thị giác để phát hiện chiến lược đọc của trẻ rối loạn đọc nói tiếng Việt}
-\label{sec:appli}
-
-Sau khi hoàn thiện bộ ngữ liệu đầu vào, khóa luận tiến hành triển khai giải pháp theo dõi chuyển động mắt đã được trình bày tại Chương \ref{chap:product} nhằm giải quyết bài toán phát hiện chiến lược đọc của trẻ mắc rối loạn đọc nói tiếng Việt. Kịch bản thử nghiệm được thiết kế như sau:
-
-\subsection{Kịch bản}
-\label{subsec:scen}
-\subsubsection*{\textit{Người tham gia}}
-
-Khóa luận đã tiến hành thử nghiệm hệ thống trên 18 học sinh lớp 2, đến từ trường Liên cấp Tây Hà Nội và trường Tiểu học Thị trấn Chi Nê, tỉnh Hòa Bình. Nhóm đối tượng tham gia được chia thành hai phân nhóm: một nhóm gồm 3 học sinh được dự đoán mắc rối loạn đọc, và nhóm còn lại gồm 15 học sinh phát triển bình thường. Tất cả các em đều sử dụng tiếng Việt là ngôn ngữ mẹ đẻ, không có bất kỳ trẻ nào gặp các vấn đề về thị giác và đều có trí tuệ bình thường. Quá trình thu thập dữ liệu đã được thực hiện với sự đồng thuận của giáo viên phụ trách và nhà trường.
-
-\subsubsection*{\textit{Quy trình thực nghiệm}}
-Mặc dù các thiết bị theo dõi chuyển động mắt cố định đầu của người tham gia có thể cung cấp dữ liệu điểm nhìn chính xác hơn, nhưng chúng thường gây cảm giác không thoải mái cho người tham gia, đặc biệt là trẻ em, dẫn đến sự sợ hãi hoặc mất tập trung, từ đó ảnh hưởng tiêu cực đến hiệu quả của quá trình thực nghiệm. Vì vậy, trong quá trình thực nghiệm, chuyển động mắt của trẻ được ghi lại bằng thiết bị theo dõi chuyển động mắt Tobii 4C, một trong những thiết bị phổ biến nhất hiện nay, với tốc độ lấy mẫu 90Hz và khoảng cách bắt mắt tối ưu từ 50 đến 95 cm. Thiết bị này được gắn trực tiếp vào màn hình, nơi hiển thị các ngữ liệu đầu vào với độ phân giải HD và tần số làm mới 60Hz nhằm đảm bảo chất lượng quan sát và thu nhận dữ liệu. Mỗi trẻ tham gia được bố trí ngồi trong một phòng yên tĩnh cùng với giáo viên hướng dẫn, kỹ thuật viên và người hỗ trợ, nhằm đảm bảo sự tập trung và hỗ trợ tối đa trong quá trình thử nghiệm. Trẻ ngồi trên bàn ghế tiểu học phù hợp với thể trạng, ở khoảng cách khoảng 60 cm so với màn hình hiển thị ngữ liệu đầu vào (xem Hình \ref{fig:setup}).
-
-\begin{figure}[h]
-    \centering
-    \includegraphics[width=0.7\columnwidth]{Chapter5/setup.jpg}
-    \caption{Bố trí chỗ ngồi của trẻ}
-    \label{fig:setup}
-\end{figure}
-
-Thời gian thực hiện thử nghiệm dao động từ 15 đến 30 phút, tùy thuộc vào khả năng và đặc điểm cá nhân của từng trẻ, trong đó trẻ mắc rối loạn đọc thường có xu hướng mất nhiều thời gian hơn. Nhằm đảm bảo độ chính xác của dữ liệu thu thập được, trước mỗi phiên thử nghiệm, quá trình hiệu chỉnh thiết bị theo dõi mắt được thực hiện hai lần để đảm bảo hệ thống nhận diện chính xác chuyển động mắt của từng trẻ. Đồng thời, trẻ được yêu cầu giữ tư thế ngồi thẳng và hạn chế di chuyển trong suốt quá trình thực nghiệm. Các ngữ liệu đầu vào được trình chiếu tuần tự trên màn hình theo thứ tự và hai pha đã được thiết lập trước. Trước mỗi bài kiểm tra, giáo viên hướng dẫn sẽ cung cấp chỉ dẫn cụ thể cho trẻ về cách thức thực hiện đối với từng loại ngữ liệu. Cụ thể, với các ngữ liệu thuộc dạng chữ cái, tiếng, giả từ, từ và câu, trẻ được yêu cầu đọc to nội dung hiển thị trên màn hình. Đối với ngữ liệu văn bản, trẻ hoàn thành phần đọc thành tiếng toàn bộ đoạn văn, sau đó giáo viên sẽ đưa ra ba câu hỏi liên quan đến nội dung vừa đọc và yêu cầu trẻ trả lời. Trong trường hợp trẻ đọc sai hoặc đưa ra câu trả lời không chính xác ở lần đầu tiên, giáo viên có thể hỗ trợ bằng cách đưa ra một gợi ý để trẻ sửa câu trả lời.
-
-
-\subsection{Phân tích kết quả}
-\label{subsec:result}
-\begin{figure}[h]
-    \centering
-    \includegraphics[width=\columnwidth]{Chapter5/num_of_fixation.jpg}
-    \caption{Kết quả về số lượng điểm dừng trung bình tại từ “thặp” và “Khuyền”}
-    \label{fig:num-of-fix}
-\end{figure}
-
-\begin{figure}[h]
-    \centering
-    \includegraphics[width=\columnwidth]{Chapter5/fix-dur.jpg}
-    \caption{Kết quả về thời lượng điểm dừng trung bình tại từ “thặp” và “Khuyền”}
-    \label{fig:fix-dur}
-\end{figure}
-
-\begin{figure}[h]
-    \centering
-    \includegraphics[width=\columnwidth]{Chapter5/saccade_regression.jpg}
-    \caption{Kết quả về số lượng đường trượt trung bình và số lượng hồi quy trung bình ở mỗi nhóm trẻ tại bài đọc}
-    \label{fig:sac-reg}
-\end{figure}
-
-Sau khi hoàn tất quá trình thử nghiệm với 18 trẻ, dữ liệu chuyển động mắt thu được đã được xử lý để trích xuất các đặc trưng phổ biến trong lĩnh vực ứng dụng công nghệ theo dõi chuyển động mắt, bao gồm điểm dừng, đường trượt và hồi quy. Bên cạnh việc tính toán định lượng, các đặc trưng này cũng được biểu diễn dưới dạng trực quan thông qua bản đồ nhiệt và đường quét nhằm hỗ trợ quá trình phân tích. Trong đó, khóa luận này tập trung thực hiện phân tích các bản đồ nhiệt và đường quét.
-
-Trước hết, các đặc trưng thống kê về chuyển động mắt được sử dụng trong khóa luận để giải quyết bài toán phát hiện chiến lược đọc bao gồm: số lượng điểm dừng, thời lượng điểm dừng theo từng khu vực quan tâm (được xác định là các vần), cũng như số lượng đường trượt và số lượng hồi quy tương ứng với từng loại ngữ liệu đầu vào. Hình \ref{fig:num-of-fix} và Hình \ref{fig:fix-dur} trình bày kết quả phân tích số lượng điểm dừng và thời lượng điểm dừng trên từng vần trong các ngữ liệu đầu vào. Kết quả thu được cho thấy nhóm trẻ mắc rối loạn đọc có xu hướng dừng mắt nhiều hơn và duy trì điểm dừng lâu hơn so với nhóm trẻ phát triển bình thường. Tương tự, số lượng trung bình các đường trượt và hồi quy ở nhóm trẻ rối loạn đọc cũng cao hơn đáng kể, đặc biệt khi đọc các đoạn văn bản, dạng ngữ liệu phức tạp hơn về mặt cấu trúc và nội dung. Kết quả này được thể hiện trong Hình \ref{fig:sac-reg}. Những chỉ số cao hơn này phản ánh mức độ khó khăn trong việc xử lý và hiểu nội dung văn bản của trẻ rối loạn đọc, cho thấy chiến lược đọc của các em kém hiệu quả hơn so với nhóm trẻ phát triển bình thường.
-
-
-Bên cạnh việc phân tích các đặc trưng thống kê của chuyển động mắt, khóa luận còn đánh giá chiến lược đọc của trẻ thông qua hình ảnh trực quan được thể hiện bằng bản đồ nhiệt. Cụ thể, Hình \ref{fig:oi-khuyen} minh họa sự khác biệt và điểm tương đồng trong cách tiếp cận của trẻ đối với các giả từ có độ dài khác nhau. Đối với các giả từ ngắn, chẳng hạn như từ “ởi”, phần lớn trẻ, bao gồm cả trẻ rối loạn đọc và trẻ phát triển bình thường, có xu hướng xử lý từ bằng cách nhìn toàn bộ vào toàn từ. Trong khi đó, với những giả từ dài hơn như “Khuyền”, cả hai nhóm trẻ đều có xu hướng giải mã từ theo từng âm tiết, phản ánh quá trình đánh vần của trẻ. Ngoài ra, dữ liệu bản đồ nhiệt cũng cho thấy rằng đa số trẻ, bất kể nhóm nào, thường tập trung vào các vị trí mang thanh điệu. Từ những điểm này có thể suy ra rằng, với những từ ngắn hoặc quen thuộc, chiến lược đọc giữa trẻ rối loạn đọc và trẻ phát triển điển hình có xu hướng tương đồng.
-
-\begin{figure}[h]
-    \centering
-    \includegraphics[width=0.8\columnwidth]{Chapter5/oi-khuyen.png}
-    \caption{Chiến lược đọc của trẻ rối loạn đọc (trái) và trẻ bình thường (phải) khi đọc từ ngắn và từ dài}
-    \label{fig:oi-khuyen}
-\end{figure}
-
-Tuy nhiên, bản đồ nhiệt cũng chỉ ra sự khác biệt rõ rệt trong cách tiếp cận và xử lý của hai nhóm trẻ đối với một số giả từ nhất định. Minh họa trong Hình \ref{fig:nhinh} cho thấy khi đọc từ “Nhình”, trẻ phát triển bình thường có xu hướng tập trung ánh nhìn vào khu vực trung tâm của từ, đặc biệt là vị trí chứa thanh điệu. Điều này phản ánh khả năng nhận diện từ ngữ nhanh chóng và hiệu quả, khi trẻ chỉ cần tập trung vào dấu thanh để xác định cách phát âm chính xác mà không cần phân tích từng ký tự riêng lẻ. Trái lại, ở trẻ rối loạn đọc, các điểm dừng của ánh nhìn phân bố rời rạc trên toàn bộ từ. Điều này cho thấy trẻ gặp khó khăn trong việc nhận diện từ một cách tổng thể và cần thực hiện quá trình đánh vần từng ký tự để hiểu và phát âm từ, dẫn đến việc xử lý ngôn ngữ diễn ra chậm hơn và kém hiệu quả hơn. 
-
-\begin{figure}[h]
-    \centering
-    \includegraphics[width=0.8\columnwidth]{Chapter5/nhinh.png}
-    \caption{Sự khác biệt giữa trẻ rối loạn đọc (trái) và trẻ bình thường (phải) khi đọc một số từ và giả từ nhiều âm tiết}
-    \label{fig:nhinh}
-\end{figure}
-
-\begin{figure}[h]
-    \centering
-    \includegraphics[width=0.6\columnwidth]{Chapter5/normal-text.png}
-    \includegraphics[width=0.6\columnwidth]{Chapter5/dyslexia-text.png}
-    \caption{Sự khác biệt về đường quét giữa trẻ bình thường (trên) và trẻ rối loạn đọc (dưới) khi đọc văn bản}
-    \label{fig:text-result}
-\end{figure}
-
-Đặc biệt, sự khác biệt trong mô hình đọc giữa trẻ rối loạn đọc và trẻ phát triển bình thường được thể hiện rõ nét nhất thông qua hình ảnh đường quét khi thực hiện nhiệm vụ đọc văn bản. Trong Hình \ref{fig:text-result}, có thể thấy rằng ở nhóm trẻ rối loạn đọc, các đường quét biểu hiện xu hướng bất thường, thường lệch khỏi trục ngang trung tâm của dòng văn bản và di chuyển theo nhiều hướng không ổn định, thậm chí đôi khi ngược lại với chiều đọc thông thường từ trái sang phải. Những đặc điểm này phản ánh sự thiếu ổn định và không nhất quán trong chuyển động mắt, cho thấy quá trình đọc gặp nhiều gián đoạn và yêu cầu xử lý lặp lại. Ngược lại, ở nhóm trẻ phát triển bình thường, các đường quét thể hiện sự ổn định và tuân theo trật tự tuyến tính. Đa số các đường quét di chuyển gần như song song với dòng văn bản và tập trung quanh trục trung tâm của từng dòng, với các điểm dừng phân bố đều đặn và có kích thước tương đối đồng nhất. Điều này cho thấy quá trình xử lý thông tin diễn ra hiệu quả và nhất quán, giúp trẻ dễ dàng tiếp nhận nội dung văn bản theo trình tự.
-
-Bên cạnh đó, khi phân tích bản đồ nhiệt động, bản đồ nhiệt động vẫn cho một số đặc điểm chung trong cách thức tiếp cận nhiệm vụ đọc hiểu ở cả nhóm trẻ rối loạn đọc và nhóm trẻ phát triển bình thường, mặc dù không quan sát thấy quá nhiều khác biệt rõ rệt trong chiến lược tìm kiếm thông tin giữa hai nhóm trẻ này. Cụ thể, cả hai nhóm đều có xu hướng tập trung ánh nhìn vào khu vực chứa các từ khóa liên quan trực tiếp đến câu hỏi được đặt ra. Ví dụ, với câu hỏi “Con gà của Mai kêu vào lúc nào?”, phần lớn trẻ đều hướng sự chú ý đến các khu vực chứa cụm từ như “gà kêu” hoặc “Mai” trong đoạn văn. Tuy nhiên, một số trẻ lại lựa chọn tìm kiếm thông tin từ đầu đoạn văn hoặc đọc lại toàn bộ văn bản. Hành vi này có thể phản ánh hai khả năng: (1) trí nhớ làm việc chưa đủ hiệu quả để lưu giữ từ khóa trong câu hỏi và đối chiếu nhanh với nội dung văn bản, hoặc (2) mức độ hiểu nội dung văn bản còn hạn chế, khiến trẻ phải đọc lại để nắm bắt thông tin cần thiết.
-
-
-
-\subsection{Thảo luận}
-\label{subsec:discuss}
-Kết quả từ khóa luận thể hiện sự tương đồng nhất định với các nghiên cứu trước đây về việc sử dụng đặc trưng thị giác để phân tích quá trình đọc của trẻ mắc chứng rối loạn đọc, đồng thời cũng đưa ra một số điểm khác biệt đáng chú ý. Cụ thể, tương tự như các nghiên cứu trước, ngữ liệu kích thích được thiết kế trong khóa luận đã bao gồm những loại bài tập thường được sử dụng, cũng như sử dụng các đặc trưng chuyển động mắt phổ biến. Tuy nhiên, khác với phần lớn nghiên cứu trước đây vốn chủ yếu tập trung vào việc phân tích hành vi đọc ở cấp độ đoạn văn và sử dụng các chỉ số trung bình để đánh giá đặc điểm thị giác, khóa luận này tiến thêm một bước khi mở rộng phạm vi phân tích xuống cấp độ từ và vần trong tiếng Việt.
-
-Kết quả chỉ ra rằng, đối với những từ ngắn hoặc những từ có vần hiếm, cả hai nhóm trẻ thường áp dụng chiến lược đọc tương tự nhau, chủ yếu thông qua giải mã ngữ âm và tập trung vào các vùng chứa thanh điệu. Một điểm chung khác giữa hai nhóm là chiến lược tìm kiếm thông tin khi đọc văn bản: trẻ thường tập trung vào các đoạn có chứa từ khóa liên quan đến câu hỏi. Tuy nhiên, có sự khác biệt trong chiến lược đọc giữa hai nhóm trẻ, trước hết chúng được thể hiện rõ trong việc trẻ rối loạn đọc có số lượng và thời lượng điểm dừng cao hơn đáng kể, cùng với phạm vi phân bố điểm dừng rộng hơn trên từng từ, phản ánh nhu cầu giải mã ngữ âm nhiều hơn so với trẻ phát triển bình thường. Ngoài ra, trong bài đọc văn bản, chiến lược đọc của hai nhóm trẻ có sự khác biệt rõ ràng nhất: trẻ rối loạn đọc có đường quét không đều, lệch dòng, và số lần điểm dừng, đường trượt cũng như hồi quy cao hơn đáng kể, cho thấy quá trình đọc thiếu ổn định và kém hiệu quả hơn.
-
-Dựa trên các kết quả thu được, khóa luận đề xuất một số khuyến nghị nhằm hỗ trợ các chuyên gia trong việc can thiệp cho trẻ mắc rối loạn đọc. Trước hết, do trẻ rối loạn đọc thường gặp khó khăn trong việc nhận diện các từ dài, từ có phát âm phức tạp hoặc ít gặp (như giả từ), việc sử dụng các từ đồng nghĩa đơn giản và quen thuộc hơn là một chiến lược có thể áp dụng khi xây dựng nội dung văn bản dành cho trẻ. Bên cạnh đó, kết quả cho thấy trẻ rối loạn đọc có xu hướng tập trung vào thanh điệu trong quá trình nhận diện từ, do đó các chuyên gia nên ưu tiên sử dụng các kiểu chữ thể hiện rõ thanh điệu, đồng thời điều chỉnh định dạng văn bản theo hướng thân thiện hơn với trẻ, chẳng hạn như tăng khoảng cách giữa các dòng và giữa các từ. Những điều chỉnh này giúp trẻ dễ dàng phân tách và xử lý từng đơn vị từ ngữ một cách hiệu quả hơn. Các kết quả của giải pháp cúng đã được các chuyên gia trong lĩnh vực giáo dục đặc biệt xác nhận là có tính khả thi và hữu ích trong việc hỗ trợ trẻ rối loạn đọc.
-
-
-\section{Kết chương}
-Chương này trình bày về việc áp dụng giải pháp được đề xuất ở Chương 3 để giải quyết bài toán phát hiện chiến lược đọc của trẻ rối loạn đọc với bộ ngữ liệu đầu vào bằng tiếng Việt. Khóa luận đã được thử nghiệm trên 18 học sinh và kết quả nhận được cho thấy giải pháp có khả năng cung cấp thông tin đặc trưng chuyển động mắt của trẻ rối loạn đọc. Những chiến lược đọc của trẻ rối loạn đọc được phát hiện có thể hỗ trợ chuyên gia đề xuất các phương pháp để hỗ trợ trẻ rối loạn đọc trong quá trình học tập như lựa chọn văn bản và định dạng văn bản phù hợp với từng trẻ. Kết quả của khóa luận đã được trình bày trong bài báo: Le, Duc Duy, \textbf{Thi Kieu Chinh Nguyen}, Thanh Ha Le, Thi Cam Huong Nguyen, and Thi Duyen Ngo. "\textbf{An eye tracking-based system for capturing visual strategies in reading of children with dyslexia.}" In \textit{Proceedings of the 12th International Symposium on Information and Communication Technology}, pp. 856-862. 2023. doi.org/10.1145/3628797.3628879 (Rank B). Đây cũng là nghiên cứu đầu tiên ứng dụng công nghệ theo dõi chuyển động mắt hỗ trợ trẻ rối loạn đọc tại Việt Nam. 
+Bảng so sánh chi tiết.

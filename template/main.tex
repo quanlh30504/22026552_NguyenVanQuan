@@ -1,0 +1,256 @@
+\documentclass[oneside]{report}
+\usepackage[table]{xcolor}
+\usepackage{iftex}
+\ifPDFTeX
+\usepackage[utf8]{inputenc}
+\else
+\usepackage{fontspec}
+\setmainfont{TeX Gyre Termes}
+\fi
+\usepackage{graphicx}
+\usepackage{nameref}
+\usepackage{multicol}
+\usepackage{tikz}
+\usepackage{rotating}
+\usepackage{latexsym}
+\usepackage{pifont}
+\usepackage{pgf-pie}
+\usepackage{pgfplots}
+\usepackage[nottoc]{tocbibind}
+\usepackage{makecell}
+\usepackage{tipa}
+\usepackage{tabularx}
+\usepackage{acro}
+\acsetup{use-id-as-short}
+
+\usepackage[ruled,vlined]{algorithm2e}
+
+% \DeclareAcronym{et}{
+%   short=\textbf{ET},
+%   long=Eye tracking,
+% }
+
+% \DeclareAcronym{pccr}{
+%   short=\textbf{PCCR},
+%   long= Pupil Center Corneal Reflection,
+% }
+
+% \DeclareAcronym{aoi}{
+%   short=\textbf{AOI},
+%   long=Area of Interest,
+% }
+
+% \DeclareAcronym{ocr}{
+%   short=\textbf{OCR},
+%   long=Optical character recognition,
+% }
+
+% \DeclareAcronym{gmm}{
+%   short=\textbf{GMM},
+%   long=Gaussian Mixture Model,
+% }
+
+% \DeclareAcronym{iq}{
+%   short=\textbf{IQ},
+%   long=Intelligence quotient,
+% }
+
+% \DeclareAcronym{lvt}{
+%   short=\textbf{LVT},
+%   long=Left visual thalamus,
+% }
+
+% \DeclareAcronym{idt}{
+%   short=\textbf{I-DT},
+%   long=Dispersion-Threshold Identification,
+% }
+
+% \DeclareAcronym{ivt}{
+%   short=\textbf{I-VT},
+%   long=Velocity-Threshold Identification,
+% }
+
+\NewAcroTemplate[list]{customtable}
+  {
+    \acronymsmapF
+      { \AcroAddRow{\acrowrite {short}&\acrowrite {list}\\} }
+      { \AcroRerun }  
+    \acroheading
+    \acropreamble
+    \par \noindent
+    \begin{tabularx}{\linewidth}{|l|X|}
+      \hline
+      \AcronymTable
+    \hline
+    \end{tabularx}
+  }
+
+
+\makeatletter
+\newcommand{\unchapter}[1]{%
+  \begingroup
+  \let\@makechapterhead\@gobble % make \@makechapterhead do nothing
+  \chapter{#1}
+  \endgroup
+}
+\makeatother
+
+\hyphenpenalty=5000
+\tolerance=500
+
+% % Diagram setting
+% \usepackage{tikz}
+
+% set font, font size and spacing
+\ifPDFTeX
+\usepackage{times}
+\fi
+\usepackage{scrextend}
+\changefontsizes{13pt}
+\renewcommand{\baselinestretch}{1.3}
+% section spacing
+\usepackage{titlesec}
+\titlespacing*{\section}{0pt}{0.5\baselineskip}{0.2\baselineskip}
+\titlespacing*{\subsection}{0pt}{0.4\baselineskip}{0.2\baselineskip}
+
+% setup page layout
+\usepackage[a4paper,left=30mm,top=25mm,bottom=30mm,right=20mm,]{geometry}
+
+% Acronyms Auto
+\usepackage[nopostdot,toc,acronym,nomain,nonumberlist]{glossaries}
+\makeglossaries
+\setacronymstyle{long-short}
+% \loadglsentries[acronym]{FrontMatter/Acronyms}
+\setlength{\glsdescwidth}{0.7\linewidth}
+
+% % prevent text overflow
+% \usepackage{babel}
+% \newcommand\fh{\babelhyphen{hard}}
+
+% Change indent
+% \usepackage{indentfirst} % indent also after section titles
+\setlength{\parindent}{1cm}
+\usepackage{enumitem}
+\setlist{leftmargin=1cm}
+
+% paragraph spacing
+\setlength{\parskip}{0.5em}
+
+% Change enumerate label
+\usepackage{enumitem}
+
+% Page numbering at the center top of page
+% \usepackage{fancyhdr} % Custom headers and footers
+% \pagestyle{fancyplain} % Makes all pages in the document conform to the custom headers and footers
+% \fancyhead[L]{}% Empty left header
+% \fancyhead[C]{\thepage} % Page numbering for center header  
+% \fancyhead[R]{}% Empty right header
+% \fancyfoot[L]{}% Empty left footer
+% \fancyfoot[C]{}% Empty center footer
+% \fancyfoot[R]{}% Empty left footer
+
+% natbib
+% if use natbib, please comment out the cite
+\usepackage[sort,numbers]{natbib}
+% Citation
+% \usepackage{cite}
+
+% Math equation
+\usepackage{amssymb}
+\usepackage{amsmath}
+
+% Table
+\usepackage{multirow}
+\usepackage{longtable}
+\usepackage{bigstrut}
+
+% Cover
+\usepackage{pdfpages}
+
+% Subfigure
+\usepackage[labelsep=period]{caption}
+\usepackage{subcaption}
+
+% pstricks fig
+\usepackage{epsfig}
+
+% Table of Contents
+\usepackage[hidelinks]{hyperref}
+% \usepackage[unicode]{hyperref}
+% Uncomment if you want leading dot for chapter
+\usepackage{tocloft}
+\renewcommand{\cftpartleader}{\cftdotfill{\cftdotsep}} % for parts
+\renewcommand{\cftchapleader}{\cftdotfill{\cftdotsep}} % for chapters
+
+% table fixed width column
+\usepackage{array}
+\newcolumntype{L}[1]{>{\raggedright\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+\newcolumntype{C}[1]{>{\centering\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+\newcolumntype{R}[1]{>{\raggedleft\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+
+% define function and variable
+\def\highlight#1{\texttt{\textbf{#1}}}
+
+
+\hyphenation{Nan-yang}
+
+
+\begin{document}
+%---------------------------------------------
+% Front Matter
+%---------------------------------------------
+% \includepdf[pages=-, fitpaper=true]{FrontMatter/cover.pdf}
+\include{FrontMatter/Cover}
+\include{FrontMatter/Subtitile}
+
+\pagenumbering{roman}
+\setcounter{page}{1}
+\include{FrontMatter/Acknowledgements}
+\include{FrontMatter/Declaration}
+\include{FrontMatter/Abstract}
+
+% Show ToC and change title to Table of Contents
+\setcounter{secnumdepth}{3}
+\renewcommand{\contentsname}{Mục lục}
+\tableofcontents
+% \clearpage
+
+% Show list of 
+\include{FrontMatter/ListOfFigures}
+\include{FrontMatter/ListOfTables}
+\include{FrontMatter/Abbreviations}
+
+
+%--------------------------------------------- 
+% Main content
+%---------------------------------------------
+\renewcommand{\chaptername}{Chương}
+\renewcommand{\figurename}{Hình}
+\renewcommand{\tablename}{Bảng}
+\pagenumbering{arabic}
+\setcounter{page}{1}
+\include{Chapter1/chapter1}
+\include{Chapter2/chapter2}
+\include{Chapter3/chapter3}
+\include{Chapter4/chapter4}
+\include{Chapter5/chapter5}
+\include{Chapter6/chapter6}
+
+
+%--------------------------------------------- 
+% References
+%---------------------------------------------
+% \bibliographystyle{IEEEtranSN}
+\bibliographystyle{unsrt}
+% % \renewcommand\bibname{Danh mục tài liệu tham khảo}
+%\addcontentsline{toc}{chapter}{References}
+\renewcommand\bibname{Tài liệu tham khảo}
+\bibliography{references,references_waf} % Path to your references.bib files
+
+%--------------------------------------------- 
+% Appendix
+%---------------------------------------------
+% \appendix
+% \include{Appendix/appendix1}
+
+\end{document}

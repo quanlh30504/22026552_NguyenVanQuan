@@ -1,62 +1,131 @@
 \chapter{Giới thiệu}
 \label{chap:introduction}
-% -------------------------------------------------------------------
-% Introduction of the chapter
-% -------------------------------------------------------------------
 
-% -------------------------------------------------------------------
-% Motivation
-% -------------------------------------------------------------------
-\section{Đặt vấn đề}
-\label{sec:motiv}
-Rối loạn đọc là một rối loạn học tập có nguồn gốc thần kinh, mang tính phát triển và liên quan đến ngôn ngữ, ảnh hưởng đến khả năng đọc chính xác và trôi chảy của con người, cũng như sự phát triển các kỹ năng đánh vần và giải mã từ ngữ \cite{roitsch2019overview, american2013diagnostic}. Trẻ em mắc chứng rối loạn đọc thường gặp khó khăn trong việc kết nối ngôn ngữ nói và chữ viết. Mặc dù sở hữu năng lực nhận thức ở mức trung bình hoặc cao hơn, các em vẫn phải đối mặt với những trở ngại đáng kể trong quá trình đọc và viết, từ đó có thể ảnh hưởng tiêu cực đến kết quả học tập cũng như chất lượng cuộc sống hằng ngày. Hiện nay, rối loạn đọc là một vấn đề toàn cầu. Ali Khaleghi và cộng sự đưa ra thông tin rằng số lượng trẻ em được chẩn đoán chịu ảnh hưởng của rối loạn đọc chiếm từ 5\% đến 10\% trong tổng số trẻ em trên toàn thế giới \cite{khaleghi2022developing}. Trong lĩnh vực tâm lý học và giáo dục đặc biệt, các nghiên cứu về rối loạn đọc chủ yếu dựa vào một số bài đánh giá như Woodcock Reading Mastery Tests (WRMT) \cite{woodcock1973woodcock} và Comprehensive Test of Phonological Processing (CTOPP) \cite{wagner1999comprehensive}. Tuy nhiên, phương pháp này đòi hỏi phải kết hợp nhiều hình thức đánh giá khác nhau, bao gồm thu thập thông tin cá nhân và tiến hành quan sát, nên chúng có thể tốn nhiều thời gian và nỗ lực để có được cái nhìn toàn diện về các khía cạnh cơ bản của rối loạn đọc.
+Các ứng dụng web hiện nay là nền tảng của thương mại điện tử, dịch vụ công, giáo dục trực tuyến, ngân hàng số và rất nhiều hệ thống nghiệp vụ. Khi phần lớn dữ liệu và quy trình vận hành được đưa lên môi trường web, lớp ứng dụng trở thành một mục tiêu tấn công quan trọng. Trong nhóm các rủi ro phổ biến, Cross-Site Scripting (XSS) và SQL Injection (SQLi) vẫn là hai dạng tấn công có ảnh hưởng lớn vì chúng khai thác trực tiếp cách ứng dụng xử lý dữ liệu đầu vào của người dùng~\cite{owasp2021top10}. XSS có thể dẫn tới đánh cắp phiên đăng nhập, thực thi mã JavaScript độc hại trên trình duyệt nạn nhân hoặc thay đổi nội dung hiển thị. SQL Injection có thể cho phép kẻ tấn công truy vấn, sửa đổi hoặc phá hoại cơ sở dữ liệu phía sau ứng dụng.
 
-Việc ứng dụng công nghệ trong nghiên cứu và hỗ trợ can thiệp chứng rối loạn đọc ngày càng trở nên phổ biến trong những năm gần đây, trong đó công nghệ theo dõi chuyển động mắt nổi lên như một trong những hướng tiếp cận tiềm năng và thu hút nhiều sự quan tâm từ cộng đồng cộng đồng nghiên cứu. Công nghệ theo dõi chuyển động mắt cung cấp cho chúng ta thông tin về quá trình nhận thức thông qua việc nhận dạng hình ảnh và cách thức trẻ tiếp cận thông tin thị giác \cite{li2009picture}. Các công bố phần lớn đều cho thấy những đặc trưng thị giác khác biệt của người mắc rối loạn đọc so với người bình thường \cite{prado2007eye}. Trẻ rối loạn đọc thường đối mặt với sự khó khăn trong việc mã hóa chính tả do quá trình mã hóa hình ảnh không hiệu quả, sự chú ý bị phân tán hoặc chuyển động mắt khác thường \cite{franzen2021individuals, parshina2022global} và những bất thường này có liên quan đến khó khăn ngôn ngữ của họ \cite{parshina2022global}. Dựa trên việc phân tích dữ liệu chuyển động mắt, một số nghiên cứu đã thiết kế các phương pháp hỗ trợ phát hiện người mắc rối loạn đọc \cite{prabha2020predictive, neruvsil2021eye}, hoặc hỗ trợ can thiệp trẻ trong quá trình học tập \cite{judica2002training, ablinger2014eye, skiada2014easylexia}. 
+Một hướng phòng thủ phổ biến là triển khai Web Application Firewall (WAF) trước ứng dụng. WAF không thay thế việc lập trình an toàn, nhưng đóng vai trò như một lớp kiểm tra bổ sung: mọi HTTP request đi qua WAF sẽ được phân tích để phát hiện các mẫu tấn công trước khi tới ứng dụng. Trong hệ sinh thái mã nguồn mở, ModSecurity là một WAF engine được sử dụng rộng rãi, còn OWASP Core Rule Set (CRS) là bộ luật phổ biến được triển khai cùng ModSecurity để phát hiện nhiều nhóm tấn công web khác nhau~\cite{modsecurity-crs-overview,owasp-crs-docs}. Tuy nhiên, triển khai WAF hiệu quả không chỉ là bật càng nhiều rule càng tốt. Một hệ thống WAF thực tế cần cân bằng giữa hai mục tiêu: phát hiện được tấn công thật và hạn chế chặn nhầm request hợp lệ.
 
-Vì công nghệ theo dõi chuyển động mắt ngày càng được ứng dụng rộng rãi trong hỗ trợ người mắc chứng rối loạn đọc, số lượng nghiên cứu liên quan cũng ngày càng gia tăng. Điều này có thể khiến các nhà nghiên cứu gặp khó khăn trong việc nắm bắt tổng quan lĩnh vực, xác định các hướng nghiên cứu tiềm năng, cũng như lựa chọn phương pháp phù hợp với mục tiêu nghiên cứu của mình. Bên cạnh đó, đối với các nhà nghiên cứu trong lĩnh vực tâm lý học và giáo dục đặc biệt, việc ứng dụng công nghệ theo dõi chuyển động mắt vẫn còn nhiều trở ngại do yêu cầu về kiến thức kỹ thuật nhất định, điều này có thể gây khó khăn cho những người không có nền tảng chuyên môn về công nghệ. Vì vậy, việc tổng hợp và hệ thống hóa các nghiên cứu ứng dụng công nghệ theo dõi chuyển động mắt trong lĩnh vực này trở nên vô cùng quan trọng.
+\section{Bối cảnh an toàn ứng dụng web}
+\label{sec:motivation}
 
-Ngoài ra, phần lớn các nghiên cứu ứng dụng công nghệ theo dõi chuyển động mắt trong hỗ trợ người mắc chứng rối loạn đọc hiện nay chủ yếu tập trung vào việc giải quyết các bài toán riêng lẻ, chẳng hạn như cung cấp thông tin đặc trưng về thị giác nhằm hỗ trợ chuyên gia trong việc phân tích chiến lược đọc và tìm kiếm thông tin \cite{franzen2021individuals, prado2007eye}, hoặc đánh giá tác động của các đặc điểm văn bản đến quá trình đọc \cite{rello2016effect, rello2013frequent}. Vì vậy, vẫn chưa có một giải pháp tổng thể nào được phát triển nhằm tích hợp công nghệ theo dõi chuyển động mắt để trích xuất đặc trưng thị giác của người mắc chứng rối loạn đọc, từ đó có thể ứng dụng vào nhiều bài toán cụ thể khác nhau nhằm hỗ trợ hiệu quả hơn cho nhóm đối tượng này trong tương lai. Bên cạnh đó, mặc dù đây là một lĩnh vực mang tính liên ngành, các nghiên cứu hiện có chủ yếu tập trung vào khía cạnh phân tích tâm lý hoặc mô tả đặc điểm hành vi của người mắc rối loạn đọc, mà chưa cung cấp các mô tả chi tiết về mặt kỹ thuật, cũng như cách thức công nghệ theo dõi chuyển động mắt được tích hợp và triển khai cụ thể trong từng nghiên cứu.
+Về bản chất, WAF là một cơ chế phòng thủ dựa trên luật. Mỗi request được so khớp với một tập quy tắc mô tả dấu hiệu tấn công. Ví dụ, một request chứa chuỗi \path|<script>alert(1)</script>| có thể bị xem là XSS, hoặc một tham số chứa \path|' OR 1=1--| có thể bị xem là SQL Injection. Nếu chỉ nhìn ở mức trực giác, cách làm này có vẻ đơn giản: càng liệt kê nhiều dấu hiệu nguy hiểm thì WAF càng phát hiện tốt. Tuy nhiên, trong thực tế, cùng một từ khóa hoặc ký tự có thể xuất hiện trong cả ngữ cảnh tấn công và ngữ cảnh hợp lệ. Chẳng hạn, một website có thể truyền đoạn JavaScript hợp lệ trong tham số, một nội dung hướng dẫn lập trình có thể chứa từ \path|SELECT|, hoặc một form HTML hợp lệ có thể dùng event handler như \path|onsubmit="validate()"|.
 
-Bên cạnh đó, các nghiên cứu hiện nay chủ yếu tập trung vào nhóm đối tượng là trẻ em sử dụng ngôn ngữ tiếng Anh, cũng như một số ngôn ngữ khác như tiếng Đức, tiếng Trung, v.v., mà chưa có nghiên cứu nào được thực hiện trên đối tượng mắc chứng rối loạn đọc nói tiếng Việt. Trong khi đó, đặc điểm của từng ngôn ngữ đóng vai trò quan trọng trong quá trình đọc và xử lý thông tin ngôn ngữ, từ đó ảnh hưởng đáng kể đến biểu hiện và mức độ nghiêm trọng của chứng rối loạn đọc. Cụ thể, những ngôn ngữ có ánh xạ ký tự-âm thanh nhất quán, trong đó mỗi ký tự tương ứng với một cách phát âm duy nhất, thường dễ xử lý hơn so với các ngôn ngữ có ánh xạ kém nhất quán. Trẻ mắc chứng rối loạn đọc nói tiếng Anh, ngôn ngữ có ánh xạ ký tự-âm thanh kém nhất quán, thường đọc chậm hơn và mắc nhiều lỗi hơn (ví dụ: lỗi phát âm hoặc nhận diện từ) so với trẻ sử dụng các ngôn ngữ có hệ thống ánh xạ nhất quán hơn như tiếng Đức \cite{ziegler2003developmental}. Bên cạnh đó, tiếng Việt sở hữu nhiều đặc điểm ngôn ngữ học đặc thù như hệ thống ánh xạ ký tự-âm thanh tương đối nhất quán, hệ thống thanh điệu phong phú, cùng các yếu tố ngữ âm và ngữ nghĩa riêng biệt \cite{umera2008spelling, tang2007cross}. Những đặc trưng này làm nổi bật sự cần thiết của việc phát triển các giải pháp hỗ trợ được thiết kế chuyên biệt cho người mắc chứng rối loạn đọc sử dụng tiếng Việt, thay vì áp dụng nguyên mẫu từ các nghiên cứu dựa trên những ngôn ngữ khác.
+OWASP CRS xử lý vấn đề này bằng cơ chế \textbf{Anomaly Scoring}. Thay vì mọi rule đều chặn request ngay lập tức, mỗi rule khi khớp sẽ cộng một số điểm vào tổng điểm bất thường của request. Các rule nghiêm trọng hơn cộng nhiều điểm hơn: CRITICAL thường tương ứng 5 điểm, ERROR 4 điểm, WARNING 3 điểm và NOTICE 2 điểm~\cite{owasp-crs-annotated}. Request bị chặn khi tổng điểm vượt ngưỡng cấu hình, ví dụ ngưỡng inbound anomaly score bằng 5. CRS cũng tổ chức luật theo \textbf{Paranoia Levels} (PL1--PL4). PL càng cao thì càng nhiều rule được kích hoạt, khả năng phát hiện tăng lên nhưng đồng thời nguy cơ false positive cũng tăng~\cite{paranoia-levels-study}.
 
+Trong bối cảnh nghiên cứu này, vấn đề trọng tâm không phải là xây dựng một WAF hoàn toàn mới, mà là tối ưu bộ luật phát hiện XSS và SQLi trong môi trường ModSecurity/OWASP CRS. Đề tài tập trung vào câu hỏi: làm thế nào để các rule vẫn phát hiện được các kỹ thuật bypass hiện đại, nhưng không chặn nhầm quá nhiều request hợp lệ? Đây là một bài toán quan trọng vì false positive cao có thể khiến WAF khó triển khai trong thực tế. Nếu WAF liên tục chặn nhầm người dùng thật, quản trị viên thường buộc phải tắt rule hoặc tăng ngưỡng chặn, từ đó làm giảm hiệu quả bảo vệ.
 
-% -------------------------------------------------------------------
-% Problem statement
-% ------------------------------------------------------------------
-\section{Bài toán}
-\label{sec:problem-statement}
-Xuất phát từ những hạn chế trong các nghiên cứu đã công bố liên quan đến ứng dụng công nghệ theo dõi chuyển động mắt trong hỗ trợ trẻ mắc chứng rối loạn đọc, việc tổng hợp và hệ thống hóa các nghiên cứu hiện có, đồng thời phát triển một phương pháp cung cấp quy trình hoàn chỉnh nhằm ứng dụng công nghệ này để trích xuất các đặc trưng thị giác của trẻ là điều hết sức cần thiết. Vì vậy, khóa luận này trước hết đã tìm hiểu và hệ thống hóa các nghiên cứu ứng dụng công nghệ theo dõi chuyển động mắt trong các bài toán liên quan đến rối loạn đọc. Cụ thể, khóa luận đã tiến hành phân tích các công trình nghiên cứu hiện có được tìm kiếm và thu thập từ các cơ sở dữ liệu khoa học uy tín, nhằm đưa ra một cái nhìn toàn diện về các khía cạnh của rối loạn đọc được tiếp cận thông qua công nghệ theo dõi chuyển động mắt, cách thức ứng dụng công nghệ này trong các nghiên cứu, cũng như mối liên hệ giữa các đặc trưng chuyển động mắt và quá trình đọc của người mắc chứng rối loạn đọc. Bên cạnh đó, khóa luận cũng rút ra những hạn chế còn tồn tại trong các nghiên cứu trước đây và đề xuất các hướng nghiên cứu tiềm năng trong tương lai. Trên cơ sở những kết quả thu được từ quá trình trên, khóa luận đã đóng góp vào việc đề xuất và phát triển một giải pháp ứng dụng công nghệ theo dõi chuyển động mắt nhằm hỗ trợ cung cấp thông tin về các đặc trưng thị giác của trẻ em mắc chứng rối loạn đọc. Cụ thể, giải pháp được thiết kế với khả năng thu thập dữ liệu chuyển động mắt, trích xuất các đặc trưng liên quan và trực quan hóa thông tin một cách rõ ràng, từ đó có thể được sử dụng như đầu vào cho các bài toán tiếp theo, chẳng hạn như phát hiện, phân loại hoặc hỗ trợ xây dựng các phương pháp can thiệp dành cho nhóm đối tượng này. Sau đó, khóa luận đã ứng dụng giải pháp đề xuất vào một bài toán cụ thể: phát hiện chiến lược đọc của trẻ mắc chứng rối loạn đọc sử dụng tiếng Việt. Thông qua bài toán này, hệ thống đã cho phép xác định được những đặc trưng điển hình trong quá trình nhận biết và xử lý thông tin từ văn bản của trẻ, qua đó làm rõ hơn các biểu hiện cụ thể của chứng rối loạn đọc trong bối cảnh ngôn ngữ tiếng Việt. Những kết quả thu được có ý nghĩa thực tiễn cao, đặc biệt trong việc thiết kế các chiến lược can thiệp cá nhân hóa, phù hợp với từng trẻ, vì biểu hiện và mức độ nghiêm trọng của rối loạn đọc có thể khác biệt đáng kể giữa các cá nhân.
+\section{Hạn chế của OWASP CRS và enumeration-based}
+\label{sec:problem-context}
 
-% -------------------------------------------------------------------
-% Contributions and Structure of the Thesis
-% -------------------------------------------------------------------
-\section{Đóng góp và cấu trúc của khóa luận}
-Các đóng góp của khóa luận bao gồm:
+Các nghiên cứu gần đây cho thấy CRS ở cấu hình nghiêm ngặt có thể gặp thách thức đáng kể về false positives, đặc biệt khi áp dụng cho traffic thực tế đa dạng~\cite{waf-benchmark-2024}. Bên cạnh đó, các bộ test như GoTestWAF được thiết kế để tạo ra nhiều payload có khả năng bypass WAF thông qua mã hóa, biến đổi cú pháp hoặc khai thác các điểm yếu trong regex~\cite{gotestwaf,wallarm-waf-bypass}. Theo kết quả phân tích trong nghiên cứu nền tảng, CRS gốc vẫn để lọt một lượng đáng kể payload bypass; trong đó XSS và SQLi chiếm tỷ lệ lớn trong các bypass cần ưu tiên xử lý~\cite{researcher-group-2025}.
+
+Một nhóm nghiên cứu đã đề xuất mở rộng CRS bằng 146 custom rules và đạt detection rate cao hơn trên GoTestWAF~\cite{researcher-group-2025}. Tuy nhiên, khi phân tích sâu các rule dành cho XSS và SQLi, có thể thấy phương pháp này vẫn mang nặng tính \textbf{enumeration-based}. Cách tiếp cận enumeration-based có thể hiểu đơn giản là ``liệt kê những gì đã biết'': liệt kê một danh sách hàm JavaScript nguy hiểm, một danh sách tag HTML, hoặc một danh sách payload SQLi cụ thể, sau đó so khớp request với danh sách đó.
+
+Cách tiếp cận này có ưu điểm là dễ triển khai và có thể nhanh chóng bắt được các payload đã biết. Tuy nhiên, nó có bốn hạn chế lớn:
+
+\begin{enumerate}
+    \item \textbf{Khó bao phủ biến thể mới.} Nếu rule XSS chỉ liệt kê \path|alert|, \path|confirm|, \path|prompt|, \path|eval| và \path|setInterval| thì các biến thể như \path|fetch()|, \path|setTimeout()|, template literals, optional chaining hoặc gọi hàm thông qua bracket notation có thể bị bỏ sót.
+
+    \item \textbf{Dễ tạo false positive khi thiếu ngữ cảnh.} Nếu rule bắt mọi chuỗi dạng \path|on\w+=| thì cả payload độc hại như \path|onerror=alert(1)| và mã hợp lệ như \path|onsubmit="validate()"| đều có thể bị chặn. Điểm khác biệt quan trọng không nằm ở việc có event handler hay không, mà nằm ở giá trị phía sau event handler có thực thi hành vi nguy hiểm hay không.
+
+    \item \textbf{Yếu trước kỹ thuật mã hóa và biến đổi cú pháp.} Payload tấn công có thể được mã hóa URL nhiều lớp, dùng HTML entity, JavaScript escape, null byte, khoảng trắng bất thường hoặc Base64 để né regex trực tiếp~\cite{encoding-bypass-analysis,encoding-multilayer-2022}. Nếu rule chỉ decode một lớp hoặc chỉ so khớp trên chuỗi gốc thì khả năng bỏ sót tăng lên.
+
+    \item \textbf{Khó bảo trì.} Khi danh sách payload ngày càng dài, regex trở nên phức tạp và lặp lại ở nhiều input vector. Mỗi kỹ thuật mới lại cần bổ sung thêm vào danh sách, làm rule khó đọc, khó kiểm thử và khó giải thích.
+\end{enumerate}
+
+Từ các hạn chế trên, đề tài lựa chọn hướng \textbf{generalized rules}: thay vì chỉ liệt kê payload cụ thể, rule cần mô tả hành vi và ngữ cảnh tấn công ở mức tổng quát hơn. Với XSS, điều này nghĩa là phát hiện \textit{execution context}: tag, event handler, URI scheme hoặc DOM sink có khả năng thực thi JavaScript. Với SQLi, điều này nghĩa là phát hiện \textit{semantic pattern}: cấu trúc injection như \path|UNION SELECT|, stacked query, boolean bypass, time-based function, error-based extraction hoặc truy cập schema hệ thống, thay vì chỉ bắt một payload cụ thể.
+
+\section{Mục tiêu nghiên cứu}
+\label{sec:objectives}
+
+Mục tiêu tổng quát của khóa luận là \textbf{tối ưu hóa bộ luật WAF ModSecurity cho phát hiện XSS và SQL Injection bằng phương pháp Generalized Rules}, nhằm cải thiện khả năng triển khai thực tế của WAF rule-based. Cụ thể, khóa luận hướng tới việc xây dựng bộ rule mới có khả năng phát hiện tốt các kỹ thuật bypass phổ biến, giảm false positives trên traffic hợp lệ, và có cấu trúc rõ ràng để dễ mở rộng trong tương lai.
+
+Các mục tiêu cụ thể bao gồm:
+
+\begin{enumerate}
+    \item \textbf{Thiết kế bộ luật XSS v2 theo hướng context-aware.} Bộ luật cần phân biệt giữa nội dung HTML/JavaScript hợp lệ và payload có ngữ cảnh thực thi nguy hiểm, đồng thời xử lý các kỹ thuật bypass như event handler, protocol URI, DOM sink, encoding và obfuscation.
+
+    \item \textbf{Thiết kế bộ luật SQLi v2 theo hướng semantic-based.} Bộ luật cần phát hiện các cấu trúc SQL Injection phổ biến trên nhiều hệ quản trị cơ sở dữ liệu, bao gồm MySQL, MSSQL, PostgreSQL, Oracle, SQLite và một phần NoSQL/MongoDB ở mức cơ bản.
+
+    \item \textbf{Xây dựng kiến trúc phát hiện nhiều lớp.} Các rule được tổ chức thành nhiều lớp theo mức độ nguy hiểm: core payload, structural injection, encoded/obfuscated payload, DOM/context-specific pattern và advanced heuristic. Cách phân lớp này giúp rule dễ hiểu và dễ tinh chỉnh severity.
+
+    \item \textbf{Tích hợp với cơ chế Anomaly Scoring của OWASP CRS.} Rule không nên hoạt động như một tập chặn độc lập, mà cần cộng điểm vào các biến anomaly score của CRS để tận dụng threshold engine sẵn có.
+
+    \item \textbf{Xây dựng và sử dụng benchmark framework để đánh giá định lượng.} Hệ thống đánh giá cần phân loại kết quả thành TP, TN, FP, FN và tính các metrics như Recall, Precision, FPR, Accuracy và F1-score.
+
+    \item \textbf{Đề xuất phương pháp tuning giảm false positives.} Dựa trên kết quả benchmark và audit logs, khóa luận cần xác định các CRS rules gây FP cao, đánh giá rủi ro khi vô hiệu hóa, và cấu hình tuning exclusions một cách có kiểm soát.
+\end{enumerate}
+
+\section{Câu hỏi nghiên cứu}
+\label{sec:research-questions}
+
+Từ mục tiêu trên, khóa luận tập trung trả lời các câu hỏi nghiên cứu sau:
+
 \begin{itemize}
-    \item Tìm hiểu và hệ thống hóa các nghiên cứu ứng dụng công nghệ theo dõi chuyển động mắt trong các bài toán liên quan đến rối loạn đọc, qua đó cung cấp một cái nhìn toàn diện về các khía cạnh của rối loạn đọc được tiếp cận và cách thức công nghệ này được triển khai, đồng thời phân tích những hạn chế còn tồn tại và đề xuất các hướng nghiên cứu tiềm năng trong tương lai.
-    \item Nghiên cứu và phát triển giải pháp toàn diện ứng dụng công nghệ theo dõi chuyển động mắt nhằm trích xuất và cung cấp thông tin về đặc trưng thị giác của trẻ mắc chứng rối loạn đọc. Giải pháp này có thể được ứng dụng để phát triển các nghiên cứu giải quyết các bài toán khác như xây dựng các biện pháp can thiệp phù hợp nhằm hỗ trợ hiệu quả cho nhóm đối tượng này.
-    \item Áp dụng giải pháp được đề xuất giải quyết một bài toán cụ thể là bài toán phát hiện chiến lược đọc ở trẻ mắc chứng rối loạn đọc sử dụng tiếng Việt. Những kết quả thu được mang lại giá trị thực tiễn đáng kể, đặc biệt trong việc xây dựng các chiến lược can thiệp được cá nhân hóa, phù hợp với đặc điểm và nhu cầu riêng biệt của từng trẻ. 
+    \item \textbf{RQ1:} Phương pháp context-aware/generalized rules có giúp giảm false positives so với phương pháp enumeration-based trong phát hiện XSS hay không?
+
+    \item \textbf{RQ2:} Việc sử dụng multi-decode pipeline có cải thiện khả năng phát hiện các payload XSS/SQLi được mã hóa hoặc obfuscate hay không?
+
+    \item \textbf{RQ3:} Các SQLi rules dựa trên semantic patterns có mở rộng coverage tốt hơn so với rule chỉ bắt một số payload cố định hay không?
+
+    \item \textbf{RQ4:} Việc tuning CRS bằng cách vô hiệu hóa có chọn lọc các rule gây FP cao có thể giảm false positives mà vẫn giữ recall cao cho XSS/SQLi hay không?
+
+    \item \textbf{RQ5:} Khi so sánh với hướng AI-based detection, WAF rule-based sau tuning có những ưu và nhược điểm gì về khả năng giải thích, độ trễ, khả năng cập nhật và tính phù hợp với triển khai real-time?
 \end{itemize}
 
-Các kết quả của khóa luận này đã được trình bày trong các công bố sau (xem ở phần Phụ lục):
-\begin{itemize}
-    \item \textbf{Thi Kieu Chinh Nguyen}, Duc Duy Le, Thanh Ha Le, Thi Cam Huong Nguyen, and Thi Duyen Ngo. "\textbf{The use of eye tracking in supporting individuals with dyslexia: a review}." \textit{Disability and Rehabilitation: Assistive Technology} (2024): 1-16. doi.org/10.1080/17483107.2024.2437697 (Web of Science/Scopus Q1).
-    \item Le, Duc Duy, \textbf{Thi Kieu Chinh Nguyen}, Thanh Ha Le, Thi Cam Huong Nguyen, and Thi Duyen Ngo. "\textbf{An eye tracking-based system for capturing visual strategies in reading of children with dyslexia.}" In \textit{Proceedings of the 12th International Symposium on Information and Communication Technology}, pp. 856-862. 2023. doi.org/10.1145/3628797.3628879 (Rank B).
-    \item \textbf{Thi Kieu Chinh Nguyen}, Duc Duy Le, Thi Cam Huong Nguyen, Thanh Ha Le, and Thi Duyen Ngo. "\textbf{Techniques utilizing physiological data for supporting children with dyscalculia: A comprehensive review}." \textit{Technology and Disability} (2025). doi.org/10.1177/10554181251340659 (Web of Science/Scopus Q3).
-    \item Giải Nhất trong \textit{Hội nghị sinh viên nghiên cứu khoa học cấp Khoa Công nghệ thông tin năm 2024}.
-    \item Giải Nhất trong \textit{Hội nghị sinh viên nghiên cứu khoa học cấp Trường Đại học Công nghệ - ĐHQGHN năm 2024}.
-    \item Giải Ba trong \textit{Giải thưởng khoa học và công nghệ dành cho sinh viên trong các cơ sở giáo dục đại học năm 2024}.
-\end{itemize}
+Các câu hỏi này giúp định hướng toàn bộ cấu trúc luận văn. Chương giải pháp sẽ trả lời RQ1--RQ3 thông qua thiết kế rule, trong khi chương đánh giá sẽ trả lời RQ4--RQ5 bằng kết quả thực nghiệm và phân tích so sánh.
 
+\section{Phạm vi và giới hạn}
+\label{sec:scope}
 
-Nội dung tiếp theo của khóa luận được cấu trúc như sau:
+Để đảm bảo bài toán đủ tập trung, khóa luận giới hạn phạm vi như sau:
 
 \begin{itemize}
-    \item \textbf{Chương 2}: Giới thiệu về các kiến thức và công nghệ liên quan được sử dụng để phát triển khóa luận.
-    \item \textbf{Chương 3}: Trình bày về quá trình tìm hiểu, hệ thống hóa và phân tích các nghiên cứu ứng dụng công nghệ theo dõi chuyển động mắt trong hỗ trợ người mắc rối loạn đọc.
-    \item \textbf{Chương 4}: Trình bày về giải pháp ứng dụng công nghệ theo dõi chuyển động mắt cung cấp thông tin đặc trưng thị giác của trẻ rối loạn đọc.
-    \item \textbf{Chương 5}: Trình bày về việc ứng dụng giải pháp được đề xuất để giải quyết bài toán phát hiện chiến lược đọc ở trẻ rối loạn đọc nói tiếng Việt.
-    \item Cuối cùng là phần \textbf{Kết luận}.
+    \item \textbf{Loại tấn công chính:} XSS và SQL Injection. Một số pattern NoSQL hoặc OS-command-via-SQL có thể xuất hiện trong lớp heuristic, nhưng không phải trọng tâm chính của nghiên cứu.
+
+    \item \textbf{Nền tảng triển khai:} ModSecurity kết hợp OWASP CRS và custom rules. Đề tài không xây dựng WAF engine mới.
+
+    \item \textbf{Dữ liệu đánh giá:} các dataset và benchmark payloads như GoTestWAF, Mereani XSS, XSSed-DMOZ, CSIC 2010 và ECML nếu đã được chuẩn hóa trong pipeline thực nghiệm.
+
+    \item \textbf{Phương pháp đánh giá:} tập trung vào các metrics phát hiện và false positive như Recall, Precision, FPR, Accuracy và F1-score. Các chỉ số hiệu năng như throughput/latency được xem là phần đánh giá bổ sung.
+
+    \item \textbf{Tuning:} tập trung vào việc giảm FP cho bài toán XSS/SQLi. Một số rule CRS ngoài phạm vi như RCE/Shell có thể được vô hiệu hóa trong môi trường benchmark, nhưng cần được phân tích rủi ro rõ ràng.
 \end{itemize}
 
+Khóa luận không tuyên bố thay thế hoàn toàn OWASP CRS, không đảm bảo phát hiện 100\% mọi biến thể XSS/SQLi mới, và không xem việc tuning trong môi trường benchmark là cấu hình production mặc định. Trong môi trường thực tế, các rule liên quan đến RCE, Shell Injection, LFI/RFI hoặc các nhóm tấn công khác cần được đánh giá lại theo traffic và risk profile cụ thể của hệ thống.
 
+\section{Đóng góp chính của khóa luận}
+\label{sec:contributions}
+
+Khóa luận có các đóng góp chính sau:
+
+\begin{enumerate}
+    \item \textbf{Kiến trúc phát hiện XSS context-aware theo 5 lớp.} Bộ XSS rules v2 sử dụng dải ID \path|9942xxx|, tập trung vào ngữ cảnh thực thi thay vì chỉ bắt từ khóa. Các lớp bao gồm core XSS, structural injection, encoded/obfuscated payload, DOM context và advanced heuristic.
+
+    \item \textbf{Bộ SQLi rules v2 dựa trên semantic patterns.} Bộ SQLi rules sử dụng dải ID \path|9943xxx|, phát hiện các nhóm kỹ thuật như UNION-based, stacked queries, boolean/time-based blind SQLi, error-based SQLi, OOB SQLi, schema enumeration, comment obfuscation và encoded SQL keywords.
+
+    \item \textbf{Multi-decode pipeline cho payload bị mã hóa.} Giải pháp áp dụng các transform như \path|t:urlDecodeUni|, \path|t:htmlEntityDecode|, \path|t:jsDecode|, \path|t:removeNulls| và \path|t:compressWhitespace|. Ngoài ra, một lớp riêng xử lý Base64 được sử dụng để phát hiện payload sau khi decode.
+
+    \item \textbf{Phương pháp tuning dựa trên dữ liệu.} Thay vì tắt rule theo cảm tính, khóa luận sử dụng benchmark và audit logs để xác định rule gây FP cao, sau đó phân nhóm rủi ro và cấu hình \path|TUNING-EXCLUSIONS.conf|.
+
+    \item \textbf{Benchmark framework và đánh giá thực nghiệm.} Hệ thống benchmark tự động gửi payload tới WAF, phân loại TP/TN/FP/FN và sinh báo cáo. Kết quả bước đầu cho thấy rule v2 giảm mạnh FPR trên các dataset mixed/benign như Mereani và XSSed-DMOZ, trong khi vẫn giữ recall cao cho XSS/SQLi.
+
+    \item \textbf{Phân tích trade-off minh bạch.} Khóa luận không chỉ trình bày kết quả tốt, mà còn thảo luận rủi ro của tuning, đặc biệt là việc vô hiệu hóa một số CRS rules ngoài phạm vi XSS/SQLi như RCE/Shell và trade-off khi tắt libinjection SQLi.
+\end{enumerate}
+
+\section{Cấu trúc luận văn}
+\label{sec:thesis-structure}
+
+Phần còn lại của luận văn được tổ chức như sau:
+
+\begin{itemize}
+    \item \textbf{Chương 2 -- Cơ sở lý thuyết và nghiên cứu liên quan:} Trình bày nền tảng về WAF, ModSecurity, OWASP CRS, Anomaly Scoring, Paranoia Levels, XSS, SQL Injection, các kỹ thuật encoding bypass, phương pháp enumeration-based và hướng context-aware/generalized detection. Chương này cũng giới thiệu ngắn gọn AI-based detection như một hướng tham chiếu.
+
+    \item \textbf{Chương 3 -- Phương pháp nghiên cứu và thiết kế thực nghiệm:} Mô tả quy trình nghiên cứu tổng thể, môi trường triển khai, datasets, quy trình làm sạch dữ liệu, benchmark framework, metrics đánh giá và phương pháp phân tích false negatives/false positives.
+
+    \item \textbf{Chương 4 -- Giải pháp đề xuất:} Trình bày chi tiết kiến trúc custom rules v2, bao gồm XSS generalized rules, SQLi generalized rules, multi-decode pipeline, tích hợp anomaly scoring và tuning exclusions.
+
+    \item \textbf{Chương 5 -- Kết quả thực nghiệm và đánh giá:} Trình bày kết quả benchmark trên các datasets, so sánh rule gốc với rule v2, phân tích false positives/false negatives, đánh giá tác động của tuning và so sánh với AI model tham chiếu.
+
+    \item \textbf{Chương 6 -- Thảo luận, giới hạn và kết luận:} Thảo luận ý nghĩa của kết quả, phân tích rủi ro khi tuning CRS, nêu các giới hạn của nghiên cứu, đề xuất hướng phát triển và tổng kết đóng góp của khóa luận.
+\end{itemize}

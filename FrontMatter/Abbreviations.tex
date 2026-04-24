@@ -1,32 +1,43 @@
 \chapter*{Thuật ngữ và từ viết tắt}
 \addcontentsline{toc}{chapter}{Thuật ngữ và từ viết tắt}
-% \glsaddall
 
-\begin{table}[h]
-    \centering
-    \renewcommand{\arraystretch}{1.2} % Tăng khoảng cách giữa các hàng
-    \begin{tabular}{|C{0.15\textwidth}|C{0.4\textwidth}|C{0.4\textwidth}|}
-        \hline
-        \textbf{Từ viết tắt} & \textbf{Từ đầy đủ} & \textbf{Ý nghĩa} \\ 
-        \hline
-        AOI & Area of Interest & Khu vực quan tâm \\ 
-        \hline
-        OCR & Optical Character Recognition & Nhận dạng ký tự quang học \\
-        \hline
-        EyeMMV & Eye Movements Metrics \& Visualizations & Thuật toán xử lý số liệu và hình ảnh trực quan chuyển động mắt \\ 
-        \hline
-        PeyeMMV & Python implementation of EyeMMV & Cài đặt thuật toán EyeMMV bằng Python \\ 
-        \hline
-        I-VT & Velocity-Threshold Identification & Thuật toán xác định theo ngưỡng vận tốc \\ 
-        \hline
-        I-DT & Dispersion-Threshold Identification & Thuật toán xác định theo ngưỡng phân tán \\ 
-        \hline
-    \end{tabular}
+{\small
+\renewcommand{\arraystretch}{1.2}
+\begin{longtable}{|C{0.14\textwidth}|L{0.30\textwidth}|L{0.46\textwidth}|}
+    \hline
+    \textbf{Từ viết tắt} & \textbf{Từ đầy đủ} & \textbf{Ý nghĩa} \\
+    \hline
+    \endfirsthead
+
+    \hline
+    \textbf{Từ viết tắt} & \textbf{Từ đầy đủ} & \textbf{Ý nghĩa} \\
+    \hline
+    \endhead
+
+    WAF & Web Application Firewall & Tường lửa ứng dụng web, dùng để kiểm tra HTTP request/response và phát hiện hoặc ngăn chặn tấn công ở tầng ứng dụng. \\
+    \hline
+    CRS & Core Rule Set & Bộ quy tắc chuẩn của OWASP thường được triển khai cùng ModSecurity để phát hiện các nhóm tấn công web phổ biến. \\
+    \hline
+    OWASP & Open Worldwide Application Security Project & Tổ chức cộng đồng xây dựng tài liệu, công cụ và khuyến nghị về an toàn ứng dụng. \\
+    \hline
+    XSS & Cross-Site Scripting & Kỹ thuật chèn mã JavaScript hoặc nội dung có khả năng thực thi vào ứng dụng web. \\
+    \hline
+    SQLi & SQL Injection & Kỹ thuật chèn hoặc thay đổi câu lệnh SQL thông qua dữ liệu đầu vào của ứng dụng. \\
+    \hline
+    FP & False Positive & Request hợp lệ bị WAF nhận nhầm là tấn công và chặn. \\
+    \hline
+    FN & False Negative & Request tấn công không bị WAF phát hiện và đi qua hệ thống. \\
+    \hline
+    TP & True Positive & Request tấn công được WAF phát hiện đúng. \\
+    \hline
+    TN & True Negative & Request hợp lệ được WAF cho đi qua đúng. \\
+    \hline
+    FPR & False Positive Rate & Tỷ lệ chặn nhầm trên tổng số request hợp lệ, được tính bằng $FP/(FP+TN)$. \\
+    \hline
+    PL & Paranoia Level & Mức độ nghiêm ngặt của OWASP CRS; PL càng cao thì càng nhiều rule được kích hoạt. \\
+    \hline
+    RCE & Remote Code Execution & Nhóm tấn công nhằm thực thi mã hoặc lệnh từ xa trên hệ thống mục tiêu. \\
+    \hline
     \label{tab:terms}
-\end{table}
-
-% \acuseall
-
-\printacronyms[heading=addchap, sort=true, template=customtable]
-
-
+\end{longtable}
+}
