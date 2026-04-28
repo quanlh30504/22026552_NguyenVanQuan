@@ -255,6 +255,40 @@ Với CRS, tuning exclusions thường được thực hiện bằng chỉ thị
 
 Trong khóa luận, tuning được xem là một phần của phương pháp nghiên cứu chứ không chỉ là thao tác cấu hình. Mỗi thay đổi tuning cần được đánh giá bằng cùng framework, cùng metric và cùng dataset. Nhờ đó, kết luận về giảm false positives có thể được kiểm chứng bằng số liệu thay vì chỉ dựa trên quan sát thủ công. Kết quả định lượng sau các vòng tuning được trình bày ở Chương 5.
 
+\section{Liên kết câu hỏi nghiên cứu với thiết kế thực nghiệm}
+\label{sec:rq-experiment-mapping}
+
+Để bảo đảm phần đánh giá trả lời trực tiếp các câu hỏi nghiên cứu, mỗi RQ được gắn với một nhóm bằng chứng thực nghiệm và một bộ chỉ số tương ứng. Bảng~\ref{tab:rq-experiment-mapping} trình bày ma trận liên kết giữa câu hỏi nghiên cứu, nguồn dữ liệu, cấu hình so sánh và metric chính. Ma trận này cũng là cơ sở để đọc kết quả ở Chương 5: mỗi nhóm kết quả không chỉ là một bảng số liệu độc lập, mà phải cho biết nó đang trả lời RQ nào.
+
+{\small
+\renewcommand{\arraystretch}{1.2}
+\begin{longtable}{|C{0.09\textwidth}|L{0.25\textwidth}|L{0.27\textwidth}|L{0.25\textwidth}|}
+\caption{Liên kết giữa câu hỏi nghiên cứu và thiết kế thực nghiệm}\label{tab:rq-experiment-mapping}\\
+\hline
+\textbf{RQ} & \textbf{Nội dung cần đánh giá} & \textbf{Nguồn bằng chứng} & \textbf{Metric/tiêu chí chính} \\
+\hline
+\endfirsthead
+
+\hline
+\textbf{RQ} & \textbf{Nội dung cần đánh giá} & \textbf{Nguồn bằng chứng} & \textbf{Metric/tiêu chí chính} \\
+\hline
+\endhead
+
+RQ1 & Generalized/context-aware rules có giảm false positives trong phát hiện XSS so với enumeration-based rules hay không. & Mereani XSS, XSSed-DMOZ và các subset benign/mixed; so sánh rule gốc với XSS generalized rules v2. & FP count, FPR, Precision, Accuracy và các ví dụ FP theo rule ID. \\
+\hline
+RQ2 & Multi-decode pipeline có cải thiện phát hiện payload encoded/obfuscated hay không. & GoTestWAF, danh sách false negatives, phân loại bypass theo URL encode, HTML entity, Base64, JS escape và obfuscation. & Recall, FN count, nhóm kỹ thuật bypass còn sót và coverage theo layer. \\
+\hline
+RQ3 & Semantic-based SQLi rules có mở rộng coverage so với rule chỉ bắt payload cố định hay không. & SQLi payloads trong benchmark, GoTestWAF SQLi nếu có, rule coverage theo nhóm UNION, stacked query, blind, error/OOB và schema enumeration. & Recall/FN nếu có benchmark định lượng; coverage theo kỹ thuật và DBMS nếu phân tích theo pattern. \\
+\hline
+RQ4 & Tuning exclusions có giảm FPR mà vẫn giữ recall cao cho XSS/SQLi hay không. & Kết quả trước/sau tuning, audit log ModSecurity, thống kê top CRS rules gây FP. & FPR delta, FP count delta, Recall delta, nhóm rule bị loại và phân tích rủi ro. \\
+\hline
+RQ5 & WAF rule-based sau tuning có ưu/nhược điểm gì so với AI-based detection. & Kết quả benchmark của WAF và số liệu tham chiếu từ các nghiên cứu AI-based detection. & Accuracy/F1 tham chiếu, latency, interpretability, khả năng cập nhật và khả năng triển khai inline. \\
+\hline
+\end{longtable}
+}
+
+Một yêu cầu quan trọng khi trình bày kết quả là phải phân biệt rõ dữ liệu raw và dữ liệu clean. Nếu một chỉ số được tính trên dữ liệu đã làm sạch, báo cáo cần nêu rõ nguyên tắc làm sạch và lưu lại kết quả raw để đối chiếu. Trước khi đưa số liệu cuối cùng vào Chương 5 hoặc phần tóm tắt, cần ưu tiên kiểm tra các artefact thực nghiệm gốc như CSV kết quả, HTML report, file false negatives và audit logs. Các tài liệu tổng hợp chỉ nên được dùng khi số liệu trong đó khớp với artefact thực nghiệm.
+
 \section{Thiết kế so sánh}
 \label{sec:comparison-design}
 

@@ -1,12 +1,109 @@
-\chapter{Thảo luận và kết luận}
+\chapter{Thảo luận, giới hạn và kết luận}
 \label{chap:discussion-conclusion}
 
-\section{Thảo luận}
-\label{sec:discussion}
+Chương này tổng hợp ý nghĩa của phương pháp và kết quả nghiên cứu, đồng thời thảo luận các giới hạn cần lưu ý khi diễn giải kết quả. Nếu Chương 5 tập trung vào số liệu thực nghiệm, chương này trả lời câu hỏi rộng hơn: các kết quả đó có ý nghĩa gì đối với bài toán tối ưu WAF, có thể khái quát tới đâu, và cần cẩn trọng điều gì khi áp dụng vào môi trường thực tế.
 
-Phân tích rủi ro, so sánh với AI.
+\section{Thảo luận theo câu hỏi nghiên cứu}
+\label{sec:discussion-by-rq}
+
+Các câu hỏi nghiên cứu trong Chương 1 được thiết kế để nối trực tiếp vấn đề, giải pháp và đánh giá. Vì vậy, phần thảo luận được tổ chức theo từng RQ thay vì chỉ nhắc lại các metric riêng lẻ.
+
+\subsection{RQ1: Giảm false positives bằng context-aware rules}
+\label{subsec:discussion-rq1}
+
+RQ1 tập trung vào khả năng giảm false positives của generalized/context-aware rules trong phát hiện XSS. Ý nghĩa chính của hướng này là chuyển trọng tâm từ việc hỏi ``request có chứa từ khóa nguy hiểm hay không'' sang ``từ khóa hoặc cấu trúc đó có nằm trong ngữ cảnh thực thi nguy hiểm hay không''. Đây là khác biệt quan trọng đối với WAF, vì nhiều ứng dụng hợp lệ có thể truyền HTML, JavaScript snippets hoặc nội dung kỹ thuật qua request.
+
+Nếu một rule bắt mọi event handler, mọi thẻ HTML hoặc mọi từ khóa JavaScript, recall có thể cao trên payload tấn công nhưng FPR cũng có thể rất lớn. Khi FPR cao, WAF khó triển khai thực tế vì request hợp lệ bị chặn quá nhiều. Do đó, kết quả liên quan tới RQ1 cần được đọc bằng cặp chỉ số Recall--FPR thay vì chỉ nhìn detection rate. Một bộ rule tốt trong bối cảnh vận hành không chỉ chặn được nhiều payload độc hại, mà còn phải tránh chặn nhầm các trường hợp hợp lệ có hình thức tương tự.
+
+\subsection{RQ2: Vai trò của decode pipeline}
+\label{subsec:discussion-rq2}
+
+RQ2 liên quan tới các payload encoded hoặc obfuscated. Đây là nhóm kỹ thuật quan trọng vì WAF thường so khớp trên dữ liệu HTTP ban đầu, trong khi ứng dụng hoặc trình duyệt có thể decode dữ liệu trước khi xử lý. Nếu WAF không chuẩn hóa input đúng cách, chuỗi nhìn có vẻ vô hại ở tầng WAF có thể trở thành payload nguy hiểm ở tầng ứng dụng.
+
+Decode pipeline giúp giảm khoảng cách giữa dữ liệu WAF nhìn thấy và dữ liệu ứng dụng xử lý. Các transformation như \path|t:urlDecodeUni|, \path|t:htmlEntityDecode|, \path|t:jsDecode|, \path|t:removeNulls| và \path|t:compressWhitespace| hỗ trợ phát hiện payload bị che giấu bằng nhiều dạng biểu diễn. Tuy nhiên, decode càng mạnh không đồng nghĩa luôn tốt hơn. Nếu áp dụng decode quá rộng hoặc không đúng ngữ cảnh, WAF có thể tạo ra dạng dữ liệu không phản ánh cách ứng dụng thực tế xử lý request, từ đó làm tăng false positives. Vì vậy, kết quả của RQ2 cần được hiểu như một trade-off giữa coverage cho payload lẩn tránh và kiểm soát FP.
+
+\subsection{RQ3: Semantic-based SQLi rules}
+\label{subsec:discussion-rq3}
+
+RQ3 đánh giá việc chuyển từ bắt payload cố định sang phát hiện semantic patterns trong SQL Injection. Cách tiếp cận semantic-based có ý nghĩa vì SQLi không chỉ là sự xuất hiện của từ khóa như \path|select|, \path|or| hoặc dấu nháy đơn. Một payload SQLi thường thể hiện qua cấu trúc làm thay đổi ý nghĩa truy vấn: \path|UNION SELECT|, stacked query, tautology, time-based function, error-based extraction hoặc truy cập metadata của hệ quản trị cơ sở dữ liệu.
+
+Việc bắt các cấu trúc có ý nghĩa tấn công giúp rule vừa tổng quát hơn so với danh sách payload cụ thể, vừa đặc hiệu hơn so với keyword matching đơn lẻ. Ngoài ra, SQLi có tính đa dạng theo DBMS, nên coverage cần xét tới MySQL, SQL Server, PostgreSQL, Oracle, SQLite và một số pattern mở rộng nếu có. Tuy vậy, semantic-based rules vẫn không thể bảo đảm bao phủ mọi biến thể SQLi mới. Chúng cần được duy trì bằng phân tích false negatives và cập nhật định kỳ khi xuất hiện kỹ thuật bypass mới.
+
+\subsection{RQ4: Tuning exclusions và trade-off bảo mật}
+\label{subsec:discussion-rq4}
+
+RQ4 là câu hỏi quan trọng nhất về khả năng triển khai thực tế: tuning exclusions có thể giảm false positives mà vẫn giữ recall cao hay không. Trong môi trường CRS ở Paranoia Level cao, nhiều rule tổng quát hoặc nhạy có thể được kích hoạt đồng thời, làm tăng anomaly score của request benign. Khi custom rules v2 đã chuyên biệt hóa một phần logic XSS/SQLi, việc vô hiệu hóa một số CRS rules trùng lặp hoặc gây FP cao có thể hợp lý.
+
+Tuy nhiên, tuning bằng \path|SecRuleRemoveById| luôn là một trade-off. Nếu tắt rule quá rộng mà không hiểu vai trò bảo vệ của nó, hệ thống có thể giảm FP nhưng cũng giảm coverage. Vì vậy, tuning trong khóa luận được xem là tuning theo bối cảnh benchmark và phạm vi XSS/SQLi, không phải cấu hình production mặc định. Kết luận của RQ4 chỉ có giá trị khi đọc đồng thời ba yếu tố: FPR giảm bao nhiêu, recall thay đổi thế nào, và nhóm rule nào đã bị vô hiệu hóa.
+
+\subsection{RQ5: WAF rule-based và AI-based detection}
+\label{subsec:discussion-rq5}
+
+RQ5 đặt WAF rule-based sau tuning trong tương quan với hướng AI-based detection. AI-based models có thể đạt accuracy hoặc F1-score cao trên dataset đã chuẩn hóa, đặc biệt khi dữ liệu huấn luyện đa dạng và nhãn chính xác. Tuy nhiên, khi triển khai inline như một WAF, các yếu tố vận hành trở nên rất quan trọng: độ trễ, khả năng giải thích quyết định chặn, chi phí cập nhật và khả năng tuning theo ứng dụng cụ thể.
+
+Rule-based WAF có ưu điểm là mỗi quyết định chặn có thể truy vết qua rule ID, message, severity và anomaly score. Khi xảy ra false positive, người vận hành có thể xem audit log và điều chỉnh rule hoặc exclusion tương ứng. Với AI, quyết định thường khó giải thích hơn và việc sửa một nhóm FP có thể yêu cầu thu thập dữ liệu, gán nhãn lại hoặc huấn luyện lại mô hình. Vì vậy, trong phạm vi khóa luận, AI-based detection phù hợp như hướng tham chiếu hoặc lớp hỗ trợ phân tích offline, còn WAF rule-based sau tuning phù hợp hơn với yêu cầu inline real-time và khả năng giải thích.
+
+\section{Phân tích rủi ro của tuning exclusions}
+\label{sec:tuning-risk-analysis}
+
+Tuning exclusions là thành phần giúp giảm false positives nhưng cũng là phần cần thảo luận thận trọng nhất. Trong benchmark, một số CRS rules được vô hiệu hóa vì gây FP cao, quá tổng quát hoặc trùng logic với custom rules v2. Tuy nhiên, mức rủi ro không giống nhau giữa các nhóm rule.
+
+Với nhóm XSS CRS \path|941xxx|, rủi ro tương đối thấp hơn trong phạm vi đề tài nếu các rule v2 \path|9942xxx| đã thay thế được những ngữ cảnh XSS chính. Lý do là XSS v2 được thiết kế chuyên biệt hơn, xét execution context thay vì bắt rộng mọi dấu hiệu JavaScript/HTML. Tuy vậy, nếu triển khai trong một ứng dụng có nhiều ngữ cảnh HTML đặc thù, vẫn cần chạy lại benchmark và audit log trên traffic thật.
+
+Với nhóm SQLi CRS \path|942xxx|, rủi ro ở mức thấp đến trung bình. Trường hợp đáng chú ý là \path|942100|, tức libinjection SQLi. Libinjection là một heuristic rộng, có thể phát hiện một số payload không được mô tả rõ bằng regex thủ công, nhưng cũng có thể gây false positives trên dữ liệu hợp lệ phức tạp. Việc tắt \path|942100| vì vậy cần được hiểu là trade-off giữa giảm FP và mất một lớp heuristic tổng quát. Nếu SQLi là rủi ro ưu tiên cao trong production, cần cân nhắc bật lại hoặc tuning hẹp hơn thay vì loại bỏ hoàn toàn.
+
+Với nhóm RCE/Shell \path|932xxx|, rủi ro cao hơn vì đây là nhóm ngoài phạm vi chính của custom rules v2. Bộ luật v2 tập trung vào XSS và SQL Injection, không tuyên bố bảo vệ toàn diện trước command injection hoặc shell injection. Do đó, việc vô hiệu hóa một số rule \path|932xxx| chỉ nên được xem là lựa chọn trong môi trường benchmark để giảm nhiễu khi đánh giá XSS/SQLi, không phải khuyến nghị production. Trong hệ thống thực tế, nhóm rule này cần được đánh giá lại theo threat model của ứng dụng.
+
+Với nhóm protocol/character \path|920xxx| và một số rule lẻ khác, rủi ro thường phụ thuộc mạnh vào ứng dụng. Một số rule protocol có thể quá nghiêm với benchmark hoặc với input encoded hợp lệ, nhưng lại hữu ích trong hệ thống production để chặn request bất thường. Vì vậy, quyết định tuning cần dựa trên traffic thật, audit log và yêu cầu bảo mật cụ thể.
+
+\section{Giới hạn của nghiên cứu}
+\label{sec:limitations}
+
+Khóa luận có một số giới hạn cần được nêu rõ để tránh diễn giải quá mức kết quả.
+
+Thứ nhất, phạm vi chính chỉ bao gồm XSS và SQL Injection. Một số rule có thể chạm tới NoSQL hoặc OS-command-via-SQL ở mức heuristic, nhưng khóa luận không tuyên bố bao phủ toàn diện RCE, Shell Injection, LDAP Injection, SSTI, SSI, RFI/LFI hoặc các nhóm tấn công khác.
+
+Thứ hai, kết quả benchmark không đồng nghĩa với cấu hình production mặc định. Môi trường benchmark thường kiểm soát tốt dataset, target endpoint, rule set và threshold. Trong production, traffic đa dạng hơn, ứng dụng có logic nghiệp vụ riêng, và false positive có thể xuất hiện ở các ngữ cảnh không có trong dataset. Vì vậy, trước khi áp dụng, cần chạy ở chế độ monitoring hoặc detection-only, phân tích audit log, rồi mới bật blocking có chọn lọc.
+
+Thứ ba, dữ liệu clean giúp đánh giá công bằng hơn nhưng cần minh bạch. Loại bỏ dòng rỗng, nhãn sai hoặc snippet không đại diện cho HTTP request là hợp lý, nhưng nếu loại bỏ valid attack chỉ vì khó phát hiện thì kết quả sẽ bị thiên lệch. Vì vậy, việc lưu cả raw và clean results là cần thiết để người đọc thấy rõ dữ liệu nào được dùng cho đánh giá chính và dữ liệu nào dùng để phân tích robustness.
+
+Thứ tư, rule-based detection luôn phụ thuộc vào các pattern có thể mô tả. Lớp advanced/heuristic giúp mở rộng coverage nhưng không thể bảo đảm phát hiện mọi novel attack hoặc zero-day. Khi kỹ thuật tấn công mới xuất hiện, hệ thống vẫn cần quy trình theo dõi log, phân tích false negatives và cập nhật rule.
+
+Thứ năm, so sánh với AI-based detection chủ yếu mang tính tham chiếu nếu mô hình AI không được chạy trong cùng pipeline thực nghiệm. Các chỉ số từ literature có thể được tính trên dataset, môi trường và cách chia train/test khác nhau, nên không nên xem là so sánh tuyệt đối. Giá trị chính của phần AI là làm rõ trade-off giữa accuracy trên dataset, khả năng giải thích, độ trễ và chi phí vận hành.
+
+\section{Các yếu tố ảnh hưởng đến độ tin cậy của đánh giá}
+\label{sec:threats-to-validity}
+
+Độ tin cậy của đánh giá có thể bị ảnh hưởng bởi nhiều yếu tố.
+
+\textbf{Độ tin cậy nội tại} liên quan tới việc thí nghiệm có đo đúng hành vi của WAF hay không. Nếu cấu hình ModSecurity, CRS, ngưỡng chặn hoặc thứ tự nạp rule sai, kết quả kiểm thử đánh giá có thể không phản ánh đúng hiệu quả của rule v2. Tương tự, nếu khung đánh giá phân loại mã trạng thái HTTP không nhất quán hoặc quá trình phân tích audit log bỏ sót các lần khớp rule, các chỉ số TP/TN/FP/FN có thể bị sai lệch.
+
+\textbf{Độ tin cậy của dữ liệu} liên quan tới chất lượng tập dữ liệu. Các tập dữ liệu bảo mật thường có nhãn sai, chuỗi đầu vào trùng lặp, đoạn mã không đại diện cho HTTP request hoặc phân phối khác với lưu lượng trong môi trường vận hành thực tế. Việc chuẩn hóa và làm sạch dữ liệu giảm một phần vấn đề này, nhưng không loại bỏ hoàn toàn rủi ro thiên lệch dữ liệu.
+
+\textbf{Độ tin cậy khi khái quát hóa} liên quan tới khả năng áp dụng kết quả sang các bối cảnh khác. Một cấu hình giảm FP tốt trên Mereani hoặc XSSed-DMOZ chưa chắc giảm FP tương tự trên một trang web học lập trình, một hệ quản trị nội dung cho phép nhập HTML, hoặc một hệ thống quản trị cơ sở dữ liệu trực tuyến. Do đó, kết quả của khóa luận nên được xem là bằng chứng thực nghiệm trong phạm vi tập dữ liệu đã kiểm thử, không phải bảo đảm cho mọi ứng dụng.
+
+\textbf{Độ tin cậy của phép so sánh} liên quan tới tính công bằng khi so sánh các cấu hình. Cấu hình CRS nền, rule gốc dựa trên liệt kê và bộ rule tùy chỉnh v2 cần được chạy trên cùng tập dữ liệu, cùng cách gửi request và cùng công thức tính chỉ số. Với phát hiện dựa trên AI, nếu chỉ dùng số liệu từ tài liệu tham khảo, cần ghi rõ đây là so sánh định tính/tham chiếu chứ không phải kiểm thử trực tiếp trong cùng môi trường.
+
+\section{Hướng phát triển}
+\label{sec:future-work}
+
+Từ các giới hạn trên, có thể phát triển đề tài theo một số hướng.
+
+Thứ nhất, cần đánh giá trên traffic production đã ẩn danh hoặc traffic staging gần với thực tế hơn. Điều này giúp đo false positives trong các ngữ cảnh nghiệp vụ cụ thể, thay vì chỉ dựa vào dataset công khai.
+
+Thứ hai, có thể xây dựng quy trình tuning theo từng loại ứng dụng. Ví dụ, một blog kỹ thuật, một hệ thống học lập trình và một ứng dụng ngân hàng sẽ có mức chấp nhận HTML/JavaScript/SQL snippets rất khác nhau. Tuning theo profile ứng dụng sẽ thực tế hơn tuning chung cho mọi hệ thống.
+
+Thứ ba, cần xem xét bật lại hoặc tuning hẹp hơn các nhóm rule ngoài phạm vi XSS/SQLi khi triển khai production, đặc biệt là RCE/Shell \path|932xxx| và một số heuristic SQLi rộng như \path|942100|. Hướng tốt hơn có thể là áp dụng exclusions theo target variable hoặc theo endpoint thay vì loại bỏ toàn bộ rule.
+
+Thứ tư, có thể mở rộng benchmark SQLi và NoSQL bằng tập dữ liệu chuyên biệt hơn. Trong khóa luận, SQLi v2 đã thiết kế coverage cho nhiều nhóm kỹ thuật, nhưng việc đánh giá định lượng riêng theo từng DBMS và từng nhóm SQLi sẽ giúp kết luận mạnh hơn.
+
+Thứ năm, có thể kết hợp rule-based WAF với AI như một lớp hỗ trợ offline. AI có thể dùng để phân cụm payload lạ, gợi ý nhóm false positives hoặc hỗ trợ phân tích log, trong khi quyết định blocking inline vẫn do rule-based WAF đảm nhiệm để giữ độ trễ thấp và khả năng giải thích.
 
 \section{Kết luận}
 \label{sec:conclusion}
 
-Đóng góp, giới hạn, hướng phát triển.
+Khóa luận đã nghiên cứu bài toán tối ưu bộ luật WAF ModSecurity cho phát hiện XSS và SQL Injection bằng phương pháp generalized rules. Xuất phát từ hạn chế của OWASP CRS ở mức Paranoia Level cao và của các rule enumeration-based, khóa luận đề xuất hướng thiết kế rule dựa trên ngữ cảnh thực thi đối với XSS và semantic patterns đối với SQLi. Cách tiếp cận này nhằm giảm false positives, duy trì khả năng phát hiện payload tấn công phổ biến và cải thiện khả năng bảo trì so với việc liệt kê payload cố định.
+
+Về mặt kỹ thuật, khóa luận đã trình bày bộ XSS rules v2 theo nhiều lớp, bộ SQLi rules v2 theo nhóm kỹ thuật, decode pipeline cho payload encoded/obfuscated, cơ chế tích hợp với anomaly scoring của CRS và phương pháp tuning exclusions dựa trên benchmark/audit log. Về mặt phương pháp, khóa luận xây dựng quy trình đánh giá bằng TP/TN/FP/FN và các metrics như Recall, Precision, FPR, Accuracy và F1-score, đồng thời liên kết từng nhóm thí nghiệm với các câu hỏi nghiên cứu.
+
+Đóng góp chính của khóa luận không chỉ nằm ở một tập regex cụ thể, mà ở phương pháp thiết kế và đánh giá: phát hiện theo ngữ cảnh, đo lường định lượng, phân tích false negatives/false positives, tuning có kiểm soát và thảo luận minh bạch trade-off. Hệ thống không tuyên bố thay thế hoàn toàn OWASP CRS hoặc phát hiện mọi biến thể tấn công mới, nhưng cung cấp một hướng tiếp cận có cấu trúc để cải thiện khả năng triển khai thực tế của WAF rule-based trong phạm vi XSS và SQL Injection.

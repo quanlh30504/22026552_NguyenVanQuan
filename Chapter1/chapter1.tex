@@ -1,59 +1,60 @@
 \chapter{Giới thiệu}
 \label{chap:introduction}
 
-Các ứng dụng web hiện nay là nền tảng của thương mại điện tử, dịch vụ công, giáo dục trực tuyến, ngân hàng số và rất nhiều hệ thống nghiệp vụ. Khi phần lớn dữ liệu và quy trình vận hành được đưa lên môi trường web, lớp ứng dụng trở thành một mục tiêu tấn công quan trọng. Trong nhóm các rủi ro phổ biến, Cross-Site Scripting (XSS) và SQL Injection (SQLi) vẫn là hai dạng tấn công có ảnh hưởng lớn vì chúng khai thác trực tiếp cách ứng dụng xử lý dữ liệu đầu vào của người dùng~\cite{owasp2021top10}. XSS có thể dẫn tới đánh cắp phiên đăng nhập, thực thi mã JavaScript độc hại trên trình duyệt nạn nhân hoặc thay đổi nội dung hiển thị. SQL Injection có thể cho phép kẻ tấn công truy vấn, sửa đổi hoặc phá hoại cơ sở dữ liệu phía sau ứng dụng.
+Các ứng dụng web hiện nay là nền tảng của thương mại điện tử, dịch vụ công, giáo dục trực tuyến, ngân hàng số và nhiều hệ thống nghiệp vụ. Khi phần lớn dữ liệu và quy trình vận hành được đưa lên môi trường web, lớp ứng dụng trở thành mục tiêu tấn công quan trọng. Trong các rủi ro phổ biến, Cross-Site Scripting (XSS) và SQL Injection (SQLi) vẫn có ảnh hưởng lớn vì chúng khai thác trực tiếp cách ứng dụng xử lý dữ liệu đầu vào của người dùng~\cite{owasp2021top10}. XSS có thể dẫn tới đánh cắp phiên đăng nhập, thực thi mã JavaScript độc hại trên trình duyệt nạn nhân hoặc thay đổi nội dung hiển thị. SQL Injection có thể cho phép kẻ tấn công truy vấn, sửa đổi hoặc phá hoại cơ sở dữ liệu phía sau ứng dụng.
 
 Một hướng phòng thủ phổ biến là triển khai Web Application Firewall (WAF) trước ứng dụng. WAF không thay thế việc lập trình an toàn, nhưng đóng vai trò như một lớp kiểm tra bổ sung: mọi HTTP request đi qua WAF sẽ được phân tích để phát hiện các mẫu tấn công trước khi tới ứng dụng. Trong hệ sinh thái mã nguồn mở, ModSecurity là một WAF engine được sử dụng rộng rãi, còn OWASP Core Rule Set (CRS) là bộ luật phổ biến được triển khai cùng ModSecurity để phát hiện nhiều nhóm tấn công web khác nhau~\cite{modsecurity-crs-overview,owasp-crs-docs}. Tuy nhiên, triển khai WAF hiệu quả không chỉ là bật càng nhiều rule càng tốt. Một hệ thống WAF thực tế cần cân bằng giữa hai mục tiêu: phát hiện được tấn công thật và hạn chế chặn nhầm request hợp lệ.
 
 \section{Bối cảnh an toàn ứng dụng web}
 \label{sec:motivation}
 
-Về bản chất, WAF là một cơ chế phòng thủ dựa trên luật. Mỗi request được so khớp với một tập quy tắc mô tả dấu hiệu tấn công. Ví dụ, một request chứa chuỗi \path|<script>alert(1)</script>| có thể bị xem là XSS, hoặc một tham số chứa \path|' OR 1=1--| có thể bị xem là SQL Injection. Nếu chỉ nhìn ở mức trực giác, cách làm này có vẻ đơn giản: càng liệt kê nhiều dấu hiệu nguy hiểm thì WAF càng phát hiện tốt. Tuy nhiên, trong thực tế, cùng một từ khóa hoặc ký tự có thể xuất hiện trong cả ngữ cảnh tấn công và ngữ cảnh hợp lệ. Chẳng hạn, một website có thể truyền đoạn JavaScript hợp lệ trong tham số, một nội dung hướng dẫn lập trình có thể chứa từ \path|SELECT|, hoặc một form HTML hợp lệ có thể dùng event handler như \path|onsubmit="validate()"|.
+Về bản chất, WAF là một cơ chế phòng thủ dựa trên luật. Mỗi request được so khớp với một tập quy tắc mô tả dấu hiệu tấn công. Ví dụ, một request chứa chuỗi \path|<script>alert(1)</script>| có thể bị xem là XSS, hoặc một tham số chứa \path|' OR 1=1--| có thể bị xem là SQL Injection. Nếu chỉ nhìn ở mức trực giác, cách làm này có vẻ đơn giản: càng liệt kê nhiều dấu hiệu nguy hiểm thì WAF càng phát hiện tốt. Tuy nhiên, trong thực tế, cùng một từ khóa hoặc ký tự có thể xuất hiện trong cả ngữ cảnh tấn công và ngữ cảnh hợp lệ. Một website có thể truyền đoạn JavaScript hợp lệ trong tham số, một nội dung hướng dẫn lập trình có thể chứa từ \path|SELECT|, hoặc một form HTML hợp lệ có thể dùng event handler như \path|onsubmit="validate()"|.
 
-OWASP CRS xử lý vấn đề này bằng cơ chế \textbf{Anomaly Scoring}. Thay vì mọi rule đều chặn request ngay lập tức, mỗi rule khi khớp sẽ cộng một số điểm vào tổng điểm bất thường của request. Các rule nghiêm trọng hơn cộng nhiều điểm hơn: CRITICAL thường tương ứng 5 điểm, ERROR 4 điểm, WARNING 3 điểm và NOTICE 2 điểm~\cite{owasp-crs-annotated}. Request bị chặn khi tổng điểm vượt ngưỡng cấu hình, ví dụ ngưỡng inbound anomaly score bằng 5. CRS cũng tổ chức luật theo \textbf{Paranoia Levels} (PL1--PL4). PL càng cao thì càng nhiều rule được kích hoạt, khả năng phát hiện tăng lên nhưng đồng thời nguy cơ false positive cũng tăng~\cite{paranoia-levels-study}.
+Trong bối cảnh nghiên cứu này, vấn đề trọng tâm không phải là xây dựng một WAF hoàn toàn mới, mà là tối ưu bộ luật phát hiện XSS và SQLi trong môi trường ModSecurity/OWASP CRS. Đề tài tập trung vào câu hỏi: làm thế nào để các rule vẫn phát hiện được các kỹ thuật bypass phổ biến, nhưng không chặn nhầm quá nhiều request hợp lệ? Đây là bài toán quan trọng vì false positive cao có thể khiến WAF khó triển khai trong thực tế. Nếu WAF liên tục chặn nhầm người dùng thật, quản trị viên thường buộc phải tắt rule hoặc tăng ngưỡng chặn, từ đó làm giảm hiệu quả bảo vệ.
 
-Trong bối cảnh nghiên cứu này, vấn đề trọng tâm không phải là xây dựng một WAF hoàn toàn mới, mà là tối ưu bộ luật phát hiện XSS và SQLi trong môi trường ModSecurity/OWASP CRS. Đề tài tập trung vào câu hỏi: làm thế nào để các rule vẫn phát hiện được các kỹ thuật bypass hiện đại, nhưng không chặn nhầm quá nhiều request hợp lệ? Đây là một bài toán quan trọng vì false positive cao có thể khiến WAF khó triển khai trong thực tế. Nếu WAF liên tục chặn nhầm người dùng thật, quản trị viên thường buộc phải tắt rule hoặc tăng ngưỡng chặn, từ đó làm giảm hiệu quả bảo vệ.
-
-\section{Hạn chế của OWASP CRS và enumeration-based}
+\section{OWASP CRS, anomaly scoring và hướng mở rộng rule}
 \label{sec:problem-context}
 
-Các nghiên cứu gần đây cho thấy CRS ở cấu hình nghiêm ngặt có thể gặp thách thức đáng kể về false positives, đặc biệt khi áp dụng cho traffic thực tế đa dạng~\cite{waf-benchmark-2024}. Bên cạnh đó, các bộ test như GoTestWAF được thiết kế để tạo ra nhiều payload có khả năng bypass WAF thông qua mã hóa, biến đổi cú pháp hoặc khai thác các điểm yếu trong regex~\cite{gotestwaf,wallarm-waf-bypass}. Theo kết quả phân tích trong nghiên cứu nền tảng, CRS gốc vẫn để lọt một lượng đáng kể payload bypass; trong đó XSS và SQLi chiếm tỷ lệ lớn trong các bypass cần ưu tiên xử lý~\cite{researcher-group-2025}.
+OWASP CRS xử lý request bằng cơ chế \textbf{Anomaly Scoring}. Thay vì mọi rule đều chặn request ngay lập tức, mỗi rule khi khớp sẽ cộng một số điểm vào tổng điểm bất thường của request. Các rule nghiêm trọng hơn cộng nhiều điểm hơn: CRITICAL thường tương ứng 5 điểm, ERROR 4 điểm, WARNING 3 điểm và NOTICE 2 điểm~\cite{owasp-crs-annotated}. Request bị chặn khi tổng điểm vượt ngưỡng cấu hình, ví dụ ngưỡng inbound anomaly score bằng 5. CRS cũng tổ chức luật theo \textbf{Paranoia Levels} (PL1--PL4). PL càng cao thì càng nhiều rule được kích hoạt, khả năng phát hiện tăng lên nhưng đồng thời nguy cơ false positive cũng tăng~\cite{paranoia-levels-study}.
 
-Một nhóm nghiên cứu đã đề xuất mở rộng CRS bằng 146 custom rules và đạt detection rate cao hơn trên GoTestWAF~\cite{researcher-group-2025}. Tuy nhiên, khi phân tích sâu các rule dành cho XSS và SQLi, có thể thấy phương pháp này vẫn mang nặng tính \textbf{enumeration-based}. Cách tiếp cận enumeration-based có thể hiểu đơn giản là ``liệt kê những gì đã biết'': liệt kê một danh sách hàm JavaScript nguy hiểm, một danh sách tag HTML, hoặc một danh sách payload SQLi cụ thể, sau đó so khớp request với danh sách đó.
+Các nghiên cứu gần đây cho thấy CRS ở cấu hình nghiêm ngặt có thể gặp thách thức đáng kể về false positives, đặc biệt khi áp dụng cho traffic thực tế đa dạng~\cite{waf-benchmark-2024}. Bên cạnh đó, các bộ test như GoTestWAF được thiết kế để tạo ra nhiều payload có khả năng bypass WAF thông qua mã hóa, biến đổi cú pháp hoặc khai thác điểm yếu trong regex~\cite{gotestwaf,wallarm-waf-bypass}. Theo kết quả phân tích trong nghiên cứu nền tảng, CRS gốc vẫn để lọt một lượng đáng kể payload bypass; trong đó XSS và SQLi chiếm tỷ lệ lớn trong các bypass cần ưu tiên xử lý~\cite{researcher-group-2025}.
 
-Cách tiếp cận này có ưu điểm là dễ triển khai và có thể nhanh chóng bắt được các payload đã biết. Tuy nhiên, nó có bốn hạn chế lớn:
+Một nhóm nghiên cứu đã đề xuất mở rộng CRS bằng 146 custom rules và đạt detection rate cao hơn trên GoTestWAF~\cite{researcher-group-2025}. Đây là baseline quan trọng vì cho thấy việc bổ sung custom rules có thể cải thiện khả năng phát hiện của CRS. Tuy nhiên, khi phân tích riêng các rule dành cho XSS và SQLi, cách tiếp cận này vẫn còn thiên về \textbf{enumeration-based detection}: liệt kê các hàm, tag, từ khóa hoặc payload đã biết rồi so khớp request với danh sách đó. Vì vậy, cần xem xét rõ các hạn chế của hướng enumeration-based trước khi đề xuất phương pháp tối ưu hơn.
 
-\begin{enumerate}
-    \item \textbf{Khó bao phủ biến thể mới.} Nếu rule XSS chỉ liệt kê \path|alert|, \path|confirm|, \path|prompt|, \path|eval| và \path|setInterval| thì các biến thể như \path|fetch()|, \path|setTimeout()|, template literals, optional chaining hoặc gọi hàm thông qua bracket notation có thể bị bỏ sót.
+\section{Hạn chế của phương pháp enumeration-based}
+\label{sec:enumeration-limitations}
 
-    \item \textbf{Dễ tạo false positive khi thiếu ngữ cảnh.} Nếu rule bắt mọi chuỗi dạng \path|on\w+=| thì cả payload độc hại như \path|onerror=alert(1)| và mã hợp lệ như \path|onsubmit="validate()"| đều có thể bị chặn. Điểm khác biệt quan trọng không nằm ở việc có event handler hay không, mà nằm ở giá trị phía sau event handler có thực thi hành vi nguy hiểm hay không.
+Phương pháp enumeration-based có ưu điểm là dễ triển khai và có thể nhanh chóng bắt được các payload đã biết. Tuy nhiên, khi dùng làm cơ sở chính cho WAF, phương pháp này bộc lộ nhiều hạn chế.
 
-    \item \textbf{Yếu trước kỹ thuật mã hóa và biến đổi cú pháp.} Payload tấn công có thể được mã hóa URL nhiều lớp, dùng HTML entity, JavaScript escape, null byte, khoảng trắng bất thường hoặc Base64 để né regex trực tiếp~\cite{encoding-bypass-analysis,encoding-multilayer-2022}. Nếu rule chỉ decode một lớp hoặc chỉ so khớp trên chuỗi gốc thì khả năng bỏ sót tăng lên.
+Thứ nhất, \textbf{coverage phụ thuộc mạnh vào danh sách đã liệt kê}. Nếu rule XSS chỉ liệt kê một số hàm như \path|alert|, \path|confirm|, \path|prompt|, \path|eval| hoặc \path|setInterval| thì các biến thể như \path|fetch()|, \path|setTimeout()|, template literals, optional chaining hoặc gọi hàm thông qua bracket notation có thể bị bỏ sót. Tương tự, nếu rule SQLi chỉ bắt một vài payload benchmark cụ thể thì các biến thể cùng bản chất nhưng khác cú pháp có thể đi qua WAF.
 
-    \item \textbf{Khó bảo trì.} Khi danh sách payload ngày càng dài, regex trở nên phức tạp và lặp lại ở nhiều input vector. Mỗi kỹ thuật mới lại cần bổ sung thêm vào danh sách, làm rule khó đọc, khó kiểm thử và khó giải thích.
-\end{enumerate}
+Thứ hai, \textbf{thiếu ngữ cảnh dễ dẫn tới false positives}. Ví dụ, nếu rule bắt mọi chuỗi dạng \path|on\w+=| thì cả payload độc hại như \path|onerror=alert(1)| và mã hợp lệ như \path|onsubmit="validate()"| đều có thể bị chặn. Điểm khác biệt quan trọng không nằm ở việc có event handler hay không, mà nằm ở giá trị phía sau event handler có thực thi hành vi nguy hiểm hay không.
 
-Từ các hạn chế trên, đề tài lựa chọn hướng \textbf{generalized rules}: thay vì chỉ liệt kê payload cụ thể, rule cần mô tả hành vi và ngữ cảnh tấn công ở mức tổng quát hơn. Với XSS, điều này nghĩa là phát hiện \textit{execution context}: tag, event handler, URI scheme hoặc DOM sink có khả năng thực thi JavaScript. Với SQLi, điều này nghĩa là phát hiện \textit{semantic pattern}: cấu trúc injection như \path|UNION SELECT|, stacked query, boolean bypass, time-based function, error-based extraction hoặc truy cập schema hệ thống, thay vì chỉ bắt một payload cụ thể.
+Thứ ba, \textbf{khả năng chống encoding và obfuscation còn hạn chế}. Payload tấn công có thể được mã hóa URL nhiều lớp, dùng HTML entity, JavaScript escape, null byte, khoảng trắng bất thường hoặc Base64 để né regex trực tiếp~\cite{encoding-bypass-analysis,encoding-multilayer-2022}. Nếu rule chỉ decode một lớp hoặc chỉ so khớp trên chuỗi gốc thì khả năng bỏ sót tăng lên.
+
+Thứ tư, \textbf{khả năng bảo trì giảm khi danh sách payload ngày càng dài}. Regex dạng liệt kê thường trở nên phức tạp, lặp lại ở nhiều input vector và khó giải thích. Khi xuất hiện kỹ thuật mới, người phát triển rule dễ rơi vào cách nối thêm payload cụ thể vào regex lớn, làm hệ thống dần khó đọc, khó kiểm thử và khó tuning.
+
+Từ các hạn chế trên, khóa luận lựa chọn hướng \textbf{generalized rules}: thay vì chỉ liệt kê payload cụ thể, rule cần mô tả hành vi và ngữ cảnh tấn công ở mức tổng quát hơn. Với XSS, điều này nghĩa là phát hiện \textit{execution context}: tag, event handler, URI scheme hoặc DOM sink có khả năng thực thi JavaScript. Với SQLi, điều này nghĩa là phát hiện \textit{semantic pattern}: cấu trúc injection như \path|UNION SELECT|, stacked query, boolean bypass, time-based function, error-based extraction hoặc truy cập schema hệ thống, thay vì chỉ bắt một payload cụ thể.
 
 \section{Mục tiêu nghiên cứu}
 \label{sec:objectives}
 
-Mục tiêu tổng quát của khóa luận là \textbf{tối ưu hóa bộ luật WAF ModSecurity cho phát hiện XSS và SQL Injection bằng phương pháp Generalized Rules}, nhằm cải thiện khả năng triển khai thực tế của WAF rule-based. Cụ thể, khóa luận hướng tới việc xây dựng bộ rule mới có khả năng phát hiện tốt các kỹ thuật bypass phổ biến, giảm false positives trên traffic hợp lệ, và có cấu trúc rõ ràng để dễ mở rộng trong tương lai.
+Mục tiêu tổng quát của khóa luận là \textbf{đánh giá và đề xuất một hướng tối ưu bộ luật WAF ModSecurity cho phát hiện XSS và SQL Injection nhằm giảm false positives, duy trì khả năng phát hiện cao trên các payload tấn công phổ biến, và cải thiện tính bảo trì so với phương pháp enumeration-based}. Mục tiêu này nhấn mạnh kết quả cần đạt được của nghiên cứu, không chỉ dừng ở việc triển khai thêm một tập rule mới.
 
 Các mục tiêu cụ thể bao gồm:
 
 \begin{enumerate}
-    \item \textbf{Thiết kế bộ luật XSS v2 theo hướng context-aware.} Bộ luật cần phân biệt giữa nội dung HTML/JavaScript hợp lệ và payload có ngữ cảnh thực thi nguy hiểm, đồng thời xử lý các kỹ thuật bypass như event handler, protocol URI, DOM sink, encoding và obfuscation.
+    \item \textbf{Làm rõ hạn chế của CRS và rule enumeration-based} trong phát hiện XSS/SQLi, đặc biệt về false positives, coverage trước payload biến thể và khả năng bảo trì.
 
-    \item \textbf{Thiết kế bộ luật SQLi v2 theo hướng semantic-based.} Bộ luật cần phát hiện các cấu trúc SQL Injection phổ biến trên nhiều hệ quản trị cơ sở dữ liệu, bao gồm MySQL, MSSQL, PostgreSQL, Oracle, SQLite và một phần NoSQL/MongoDB ở mức cơ bản.
+    \item \textbf{Đánh giá khả năng giảm false positives của hướng generalized/context-aware detection}, trong đó rule cần xét ngữ cảnh thực thi hoặc cấu trúc tấn công thay vì bắt từ khóa đơn lẻ.
 
-    \item \textbf{Xây dựng kiến trúc phát hiện nhiều lớp.} Các rule được tổ chức thành nhiều lớp theo mức độ nguy hiểm: core payload, structural injection, encoded/obfuscated payload, DOM/context-specific pattern và advanced heuristic. Cách phân lớp này giúp rule dễ hiểu và dễ tinh chỉnh severity.
+    \item \textbf{Đánh giá vai trò của decode pipeline} đối với payload encoded/obfuscated, bao gồm URL encoding, HTML entity, JavaScript escape, null byte, whitespace obfuscation và Base64.
 
-    \item \textbf{Tích hợp với cơ chế Anomaly Scoring của OWASP CRS.} Rule không nên hoạt động như một tập chặn độc lập, mà cần cộng điểm vào các biến anomaly score của CRS để tận dụng threshold engine sẵn có.
+    \item \textbf{Đánh giá khả năng mở rộng coverage SQLi} khi sử dụng semantic patterns trên nhiều nhóm kỹ thuật và nhiều hệ quản trị cơ sở dữ liệu, thay vì chỉ bắt một số payload cố định.
 
-    \item \textbf{Xây dựng và sử dụng benchmark framework để đánh giá định lượng.} Hệ thống đánh giá cần phân loại kết quả thành TP, TN, FP, FN và tính các metrics như Recall, Precision, FPR, Accuracy và F1-score.
+    \item \textbf{Đánh giá tác động của tuning exclusions} tới false positive rate và recall trong phạm vi XSS/SQLi, đồng thời ghi nhận các trade-off bảo mật khi vô hiệu hóa một số CRS rules.
 
-    \item \textbf{Đề xuất phương pháp tuning giảm false positives.} Dựa trên kết quả benchmark và audit logs, khóa luận cần xác định các CRS rules gây FP cao, đánh giá rủi ro khi vô hiệu hóa, và cấu hình tuning exclusions một cách có kiểm soát.
+    \item \textbf{Phân tích ưu và nhược điểm của WAF rule-based sau tuning} khi đặt cạnh hướng AI-based detection về khả năng giải thích, độ trễ, khả năng cập nhật và tính phù hợp với triển khai real-time.
 \end{enumerate}
 
 \section{Câu hỏi nghiên cứu}
@@ -62,7 +63,7 @@ Các mục tiêu cụ thể bao gồm:
 Từ mục tiêu trên, khóa luận tập trung trả lời các câu hỏi nghiên cứu sau:
 
 \begin{itemize}
-    \item \textbf{RQ1:} Phương pháp context-aware/generalized rules có giúp giảm false positives so với phương pháp enumeration-based trong phát hiện XSS hay không?
+    \item \textbf{RQ1:} Phương pháp generalized/context-aware rules có giúp giảm false positives so với phương pháp enumeration-based trong phát hiện XSS hay không?
 
     \item \textbf{RQ2:} Việc sử dụng multi-decode pipeline có cải thiện khả năng phát hiện các payload XSS/SQLi được mã hóa hoặc obfuscate hay không?
 
@@ -73,26 +74,26 @@ Từ mục tiêu trên, khóa luận tập trung trả lời các câu hỏi ngh
     \item \textbf{RQ5:} Khi so sánh với hướng AI-based detection, WAF rule-based sau tuning có những ưu và nhược điểm gì về khả năng giải thích, độ trễ, khả năng cập nhật và tính phù hợp với triển khai real-time?
 \end{itemize}
 
-Các câu hỏi này giúp định hướng toàn bộ cấu trúc luận văn. Chương giải pháp sẽ trả lời RQ1--RQ3 thông qua thiết kế rule, trong khi chương đánh giá sẽ trả lời RQ4--RQ5 bằng kết quả thực nghiệm và phân tích so sánh.
+Các câu hỏi này định hướng cấu trúc của các chương sau. Chương 3 mô tả phương pháp thực nghiệm dùng để trả lời các RQ; Chương 4 trình bày thiết kế giải pháp tương ứng với RQ1--RQ4; Chương 5 trình bày kết quả thực nghiệm; và Chương 6 thảo luận ý nghĩa, giới hạn và trade-off của các kết quả đó.
 
-\section{Phạm vi và giới hạn}
+\section{Phạm vi nghiên cứu}
 \label{sec:scope}
 
 Để đảm bảo bài toán đủ tập trung, khóa luận giới hạn phạm vi như sau:
 
 \begin{itemize}
-    \item \textbf{Loại tấn công chính:} XSS và SQL Injection. Một số pattern NoSQL hoặc OS-command-via-SQL có thể xuất hiện trong lớp heuristic, nhưng không phải trọng tâm chính của nghiên cứu.
+    \item \textbf{Loại tấn công chính:} XSS và SQL Injection. Một số pattern NoSQL hoặc OS-command-via-SQL có thể xuất hiện trong lớp heuristic, nhưng không phải trọng tâm chính.
 
     \item \textbf{Nền tảng triển khai:} ModSecurity kết hợp OWASP CRS và custom rules. Đề tài không xây dựng WAF engine mới.
 
     \item \textbf{Dữ liệu đánh giá:} các dataset và benchmark payloads như GoTestWAF, Mereani XSS, XSSed-DMOZ, CSIC 2010 và ECML nếu đã được chuẩn hóa trong pipeline thực nghiệm.
 
-    \item \textbf{Phương pháp đánh giá:} tập trung vào các metrics phát hiện và false positive như Recall, Precision, FPR, Accuracy và F1-score. Các chỉ số hiệu năng như throughput/latency được xem là phần đánh giá bổ sung.
+    \item \textbf{Phương pháp đánh giá:} tập trung vào TP, TN, FP, FN và các metrics như Recall, Precision, FPR, Accuracy và F1-score.
 
-    \item \textbf{Tuning:} tập trung vào việc giảm FP cho bài toán XSS/SQLi. Một số rule CRS ngoài phạm vi như RCE/Shell có thể được vô hiệu hóa trong môi trường benchmark, nhưng cần được phân tích rủi ro rõ ràng.
+    \item \textbf{Tuning:} tập trung vào giảm false positives trong phạm vi XSS/SQLi bằng cách phân tích benchmark và audit logs.
 \end{itemize}
 
-Khóa luận không tuyên bố thay thế hoàn toàn OWASP CRS, không đảm bảo phát hiện 100\% mọi biến thể XSS/SQLi mới, và không xem việc tuning trong môi trường benchmark là cấu hình production mặc định. Trong môi trường thực tế, các rule liên quan đến RCE, Shell Injection, LFI/RFI hoặc các nhóm tấn công khác cần được đánh giá lại theo traffic và risk profile cụ thể của hệ thống.
+Các nội dung ngoài phạm vi gồm: xem RCE/Shell Injection là mục tiêu chính; triển khai production đầy đủ; thay thế toàn bộ OWASP CRS; và cam kết phát hiện mọi zero-day hoặc mọi biến thể tấn công mới. Những giới hạn và rủi ro liên quan tới tuning sẽ được thảo luận chi tiết hơn ở Chương 6.
 
 \section{Đóng góp chính của khóa luận}
 \label{sec:contributions}
@@ -100,32 +101,20 @@ Khóa luận không tuyên bố thay thế hoàn toàn OWASP CRS, không đảm 
 Khóa luận có các đóng góp chính sau:
 
 \begin{enumerate}
-    \item \textbf{Kiến trúc phát hiện XSS context-aware theo 5 lớp.} Bộ XSS rules v2 sử dụng dải ID \path|9942xxx|, tập trung vào ngữ cảnh thực thi thay vì chỉ bắt từ khóa. Các lớp bao gồm core XSS, structural injection, encoded/obfuscated payload, DOM context và advanced heuristic.
+    \item \textbf{Kiến trúc phát hiện XSS context-aware theo nhiều lớp.} Bộ XSS rules v2 sử dụng dải ID \path|9942xxx|, tập trung vào execution context thay vì chỉ bắt từ khóa. Các lớp gồm core XSS, structural injection, encoded/obfuscated payload, DOM context và advanced heuristic.
 
     \item \textbf{Bộ SQLi rules v2 dựa trên semantic patterns.} Bộ SQLi rules sử dụng dải ID \path|9943xxx|, phát hiện các nhóm kỹ thuật như UNION-based, stacked queries, boolean/time-based blind SQLi, error-based SQLi, OOB SQLi, schema enumeration, comment obfuscation và encoded SQL keywords.
 
     \item \textbf{Multi-decode pipeline cho payload bị mã hóa.} Giải pháp áp dụng các transform như \path|t:urlDecodeUni|, \path|t:htmlEntityDecode|, \path|t:jsDecode|, \path|t:removeNulls| và \path|t:compressWhitespace|. Ngoài ra, một lớp riêng xử lý Base64 được sử dụng để phát hiện payload sau khi decode.
 
-    \item \textbf{Phương pháp tuning dựa trên dữ liệu.} Thay vì tắt rule theo cảm tính, khóa luận sử dụng benchmark và audit logs để xác định rule gây FP cao, sau đó phân nhóm rủi ro và cấu hình \path|TUNING-EXCLUSIONS.conf|.
+    \item \textbf{Phương pháp tuning dựa trên dữ liệu.} Khóa luận sử dụng benchmark và audit logs để xác định rule gây FP cao, sau đó phân nhóm rủi ro và cấu hình \path|TUNING-EXCLUSIONS.conf| có kiểm soát.
 
-    \item \textbf{Benchmark framework và đánh giá thực nghiệm.} Hệ thống benchmark tự động gửi payload tới WAF, phân loại TP/TN/FP/FN và sinh báo cáo. Kết quả bước đầu cho thấy rule v2 giảm mạnh FPR trên các dataset mixed/benign như Mereani và XSSed-DMOZ, trong khi vẫn giữ recall cao cho XSS/SQLi.
+    \item \textbf{Benchmark framework và đánh giá thực nghiệm.} Hệ thống benchmark tự động gửi payload tới WAF, phân loại TP/TN/FP/FN và sinh báo cáo để so sánh rule gốc, CRS baseline, custom generalized rules v2 và AI model tham chiếu.
 
     \item \textbf{Phân tích trade-off minh bạch.} Khóa luận không chỉ trình bày kết quả tốt, mà còn thảo luận rủi ro của tuning, đặc biệt là việc vô hiệu hóa một số CRS rules ngoài phạm vi XSS/SQLi như RCE/Shell và trade-off khi tắt libinjection SQLi.
 \end{enumerate}
 
-\section{Cấu trúc luận văn}
+\section{Cấu trúc khóa luận}
 \label{sec:thesis-structure}
 
-Phần còn lại của luận văn được tổ chức như sau:
-
-\begin{itemize}
-    \item \textbf{Chương 2 -- Cơ sở lý thuyết và nghiên cứu liên quan:} Trình bày nền tảng về WAF, ModSecurity, OWASP CRS, Anomaly Scoring, Paranoia Levels, XSS, SQL Injection, các kỹ thuật encoding bypass, phương pháp enumeration-based và hướng context-aware/generalized detection. Chương này cũng giới thiệu ngắn gọn AI-based detection như một hướng tham chiếu.
-
-    \item \textbf{Chương 3 -- Phương pháp nghiên cứu và thiết kế thực nghiệm:} Mô tả quy trình nghiên cứu tổng thể, môi trường triển khai, datasets, quy trình làm sạch dữ liệu, benchmark framework, metrics đánh giá và phương pháp phân tích false negatives/false positives.
-
-    \item \textbf{Chương 4 -- Giải pháp đề xuất:} Trình bày chi tiết kiến trúc custom rules v2, bao gồm XSS generalized rules, SQLi generalized rules, multi-decode pipeline, tích hợp anomaly scoring và tuning exclusions.
-
-    \item \textbf{Chương 5 -- Kết quả thực nghiệm và đánh giá:} Trình bày kết quả benchmark trên các datasets, so sánh rule gốc với rule v2, phân tích false positives/false negatives, đánh giá tác động của tuning và so sánh với AI model tham chiếu.
-
-    \item \textbf{Chương 6 -- Thảo luận, giới hạn và kết luận:} Thảo luận ý nghĩa của kết quả, phân tích rủi ro khi tuning CRS, nêu các giới hạn của nghiên cứu, đề xuất hướng phát triển và tổng kết đóng góp của khóa luận.
-\end{itemize}
+Phần còn lại của khóa luận gồm năm chương. Chương 2 trình bày cơ sở lý thuyết và các nghiên cứu liên quan. Chương 3 mô tả phương pháp nghiên cứu, dữ liệu và thiết kế thực nghiệm. Chương 4 trình bày giải pháp đề xuất cho bộ luật XSS/SQLi generalized rules. Chương 5 trình bày kết quả thực nghiệm và đánh giá. Chương 6 thảo luận các kết quả chính, nêu giới hạn và kết luận khóa luận.
