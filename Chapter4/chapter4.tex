@@ -1,376 +1,311 @@
-\chapter{Giải pháp đề xuất}
-\label{chap:solution}
+\chapter{Thiết kế thực nghiệm và phương pháp đánh giá}
+\label{chap:evaluation-method}
 
-Chương 3 đã trình bày phương pháp nghiên cứu, cách chuẩn bị dữ liệu, benchmark framework, các chỉ số đánh giá và quy trình phân tích false negative/false positive. Dựa trên phương pháp đó, chương này trình bày thiết kế giải pháp được đề xuất trong khóa luận: bộ custom generalized rules v2 cho phát hiện Cross-Site Scripting và SQL Injection trên nền ModSecurity/OWASP CRS. Trọng tâm của chương là kiến trúc rule, nguyên tắc thiết kế, các lớp phát hiện, decode pipeline, cách tích hợp với anomaly scoring và chiến lược tuning exclusions.
+Sau khi Chương 3 đã trình bày phương pháp nghiên cứu và giải pháp đề xuất, chương này mô tả cách thiết kế thực nghiệm để kiểm chứng giải pháp đó. Nội dung chương tập trung vào mục tiêu đánh giá, môi trường chạy WAF, các cấu hình so sánh, dữ liệu thực nghiệm, quy trình chuẩn hóa dữ liệu, benchmark framework, các chỉ số đánh giá và phương pháp phân tích false negatives/false positives.
 
-Khác với Chương 5, chương này không nhằm chứng minh hiệu quả bằng số liệu benchmark. Các chỉ số như TP, TN, FP, FN, Recall, FPR, Accuracy và F1-score sẽ được trình bày ở phần kết quả thực nghiệm. Chương này trả lời câu hỏi: giải pháp được thiết kế như thế nào, vì sao chọn cách thiết kế đó, và các giới hạn kỹ thuật cần lưu ý khi sử dụng cấu hình này.
+Cách tổ chức này nhằm bảo đảm rằng phần đánh giá được đặt sau khi người đọc đã hiểu rõ phương pháp và thiết kế rule. Nói cách khác, chương này không giới thiệu thêm giải pháp mới, mà trả lời câu hỏi: cần kiểm thử như thế nào để đánh giá các tuyên bố về recall, false positive rate, khả năng xử lý payload encoded/obfuscated, hiệu quả tuning và trade-off so với hướng AI-based detection.
 
-\section{Tổng quan kiến trúc giải pháp}
-\label{sec:solution-architecture}
+\section{Mục tiêu đánh giá và liên kết với câu hỏi nghiên cứu}
+\label{sec:evaluation-goals-rq}
 
-Giải pháp được xây dựng trên kiến trúc WAF sử dụng ModSecurity kết hợp OWASP Core Rule Set. ModSecurity đóng vai trò WAF engine xử lý HTTP transaction, còn CRS cung cấp rule set nền, cơ chế anomaly scoring và rule chặn tổng hợp. Custom rules v2 được bổ sung vào cùng pipeline xử lý của CRS, thay vì hoạt động như một bộ lọc độc lập. Khi một rule v2 khớp với request, rule không chỉ ghi nhận dấu hiệu XSS/SQLi riêng mà còn cộng điểm vào biến inbound anomaly score của CRS. Quyết định cuối cùng Block/Pass vẫn dựa trên cơ chế threshold của CRS~\cite{modsecurity-docs,owasp-crs-docs,modsecurity-crs-overview}.
+Thiết kế thực nghiệm được xây dựng trực tiếp từ các câu hỏi nghiên cứu ở Chương 1. Mỗi câu hỏi nghiên cứu tương ứng với một nhóm thí nghiệm hoặc một hướng phân tích. Điều này giúp tránh việc chỉ báo cáo các con số tổng hợp mà không chỉ rõ chúng trả lời vấn đề nào của khóa luận.
 
-Hình~\ref{fig:modsecurity-architecture-flow} mô tả luồng xử lý tổng quát của giải pháp. HTTP request đi qua các phase của ModSecurity, được chuẩn hóa bởi các transformation cần thiết, sau đó được kiểm tra bởi hai nhóm custom rules chính: XSS generalized rules trong dải \path|9942xxx| và SQLi generalized rules trong dải \path|9943xxx|. Các rule này cộng điểm vào anomaly score tương ứng; sau đó CRS scoring engine, đặc biệt nhóm rule \path|949xxx|, đánh giá tổng điểm và quyết định request có bị chặn hay không.
+Bảng~\ref{tab:rq-evaluation-mapping} trình bày mối liên hệ giữa câu hỏi nghiên cứu, thành phần cần đánh giá, dữ liệu sử dụng và chỉ số chính.
+
+{\small
+\renewcommand{\arraystretch}{1.2}
+\begin{longtable}{|C{0.10\textwidth}|L{0.28\textwidth}|L{0.27\textwidth}|L{0.25\textwidth}|}
+\caption{Liên kết câu hỏi nghiên cứu với thiết kế đánh giá}\label{tab:rq-evaluation-mapping}\\
+\hline
+\textbf{RQ} & \textbf{Mục tiêu đánh giá} & \textbf{Dữ liệu/cấu hình chính} & \textbf{Chỉ số hoặc bằng chứng} \\
+\hline
+\endfirsthead
+
+\hline
+\textbf{RQ} & \textbf{Mục tiêu đánh giá} & \textbf{Dữ liệu/cấu hình chính} & \textbf{Chỉ số hoặc bằng chứng} \\
+\hline
+\endhead
+
+RQ1 & Đánh giá context-aware XSS rules có giảm false positives so với enumeration-based rules hay không. & Tập benign có khả năng chứa HTML/JavaScript snippets và tập XSS malicious đã chuẩn hóa. & FPR, Precision, danh sách FP và rule IDs gây FP. \\
+\hline
+RQ2 & Đánh giá vai trò của decode pipeline với payload encoded/obfuscated. & GoTestWAF, nhóm payload URL encoded, HTML entity, JavaScript escape, null byte, whitespace và Base64. & Recall, FN còn lại, phân loại kỹ thuật bypass. \\
+\hline
+RQ3 & Đánh giá SQLi semantic rules có mở rộng coverage tốt hơn rule bắt payload cố định hay không. & Tập SQLi gồm UNION-based, stacked query, blind, error-based, OOB, schema enumeration và nhiều DBMS. & Recall theo nhóm kỹ thuật, FN theo DBMS/pattern. \\
+\hline
+RQ4 & Đánh giá tuning exclusions có giảm false positives mà không làm giảm recall đáng kể hay không. & So sánh cấu hình trước tuning và sau tuning trên cùng dataset. & FPR trước/sau, Recall trước/sau, rule groups bị vô hiệu hóa. \\
+\hline
+RQ5 & So sánh rule-based WAF sau tuning với AI-based detection ở góc độ vận hành. & Kết quả WAF trong benchmark và số liệu AI từ tài liệu tham chiếu. & Khả năng giải thích, độ trễ, cập nhật, chi phí vận hành và tính phù hợp real-time. \\
+\hline
+\end{longtable}
+}
+
+Từ bảng trên, có thể thấy các thí nghiệm không chỉ đo detection rate chung. Với WAF, một cấu hình tốt phải được đánh giá đồng thời trên payload tấn công và request hợp lệ. Vì vậy, thiết kế đánh giá luôn kết hợp hai hướng: phân tích false negatives để xem rule còn bỏ sót gì, và phân tích false positives để xem rule có chặn nhầm traffic hợp lệ hay không.
+
+\section{Môi trường thực nghiệm}
+\label{sec:experimental-environment}
+
+Môi trường thực nghiệm được thiết kế để cô lập hành vi của WAF rule set. Request từ benchmark client được gửi tới Nginx tích hợp ModSecurity/CRS. Nếu request không bị WAF chặn, nó được chuyển tiếp tới backend thử nghiệm. Nếu request đạt ngưỡng anomaly score, WAF trả về mã chặn và ghi thông tin vào audit log. Cách bố trí này giúp phân loại kết quả dựa trên hành vi Block/Pass của WAF, thay vì phụ thuộc vào logic nghiệp vụ của một ứng dụng thật.
+
+Các thành phần chính của môi trường được tóm tắt trong Bảng~\ref{tab:experimental-environment}.
+
+{\small
+\renewcommand{\arraystretch}{1.2}
+\begin{longtable}{|L{0.24\textwidth}|L{0.30\textwidth}|L{0.36\textwidth}|}
+\caption{Các thành phần của môi trường thực nghiệm}\label{tab:experimental-environment}\\
+\hline
+\textbf{Thành phần} & \textbf{Vai trò} & \textbf{Cấu hình/ghi chú} \\
+\hline
+\endfirsthead
+
+\hline
+\textbf{Thành phần} & \textbf{Vai trò} & \textbf{Cấu hình/ghi chú} \\
+\hline
+\endhead
+
+ModSecurity/CRS WAF & Kiểm tra HTTP request, áp dụng rule, cộng điểm anomaly và quyết định Block/Pass. & Sử dụng image \path|owasp/modsecurity-crs:nginx|; rule engine bật ở chế độ \path|On|. \\
+\hline
+Backend thử nghiệm & Nhận request đã vượt qua WAF để benchmark có endpoint ổn định. & Dùng backend đơn giản như \path|ghcr.io/coreruleset/albedo:0.2.0|; không quyết định nhãn bảo mật. \\
+\hline
+Custom rules v2 & Thêm logic phát hiện XSS/SQLi generalized vào pipeline CRS. & XSS rules dải \path|9942xxx|, SQLi rules dải \path|9943xxx|. \\
+\hline
+Tuning exclusions & Vô hiệu hóa có chọn lọc một số CRS rules gây FP cao hoặc trùng logic. & Dùng \path|SecRuleRemoveById| trong file tuning; chỉ áp dụng cho cấu hình sau tuning. \\
+\hline
+Cấu hình CRS & Xác định mức nghiêm ngặt và ngưỡng chặn. & \path|BLOCKING_PARANOIA=4|, \path|DETECTION_PARANOIA=4|, \path|ANOMALY_INBOUND=5|. \\
+\hline
+Audit log & Lưu chi tiết rule match để phân tích FP/FN và anomaly score. & Ghi log dạng JSON tại \path|/var/log/nginx/modsec_audit.log|. \\
+\hline
+Benchmark client & Gửi payload, ghi nhận mã phản hồi và sinh báo cáo. & Đọc dữ liệu CSV đã chuẩn hóa, gửi request lặp lại theo từng cấu hình. \\
+\hline
+\end{longtable}
+}
+
+Việc giữ nguyên môi trường khi thay đổi rule set là yêu cầu quan trọng để so sánh công bằng. Khi đánh giá hai cấu hình, các yếu tố như endpoint, threshold, cách gửi request, dataset và công thức tính chỉ số phải giống nhau. Nếu thay đổi đồng thời nhiều yếu tố, sẽ khó xác định cải thiện đến từ rule mới, tuning exclusions hay khác biệt trong môi trường chạy.
+
+\section{Cấu hình so sánh và baseline}
+\label{sec:comparison-baselines}
+
+Để đánh giá giải pháp, khóa luận sử dụng nhiều cấu hình so sánh. Mỗi cấu hình đại diện cho một giả thuyết khác nhau: CRS gốc cho biết baseline chuẩn; rule enumeration-based cho biết giới hạn của hướng liệt kê; custom rules v2 cho biết hiệu quả của generalized/context-aware detection; cấu hình sau tuning cho biết tác động của exclusions tới FPR; còn AI-based detection là mốc tham chiếu về hướng tiếp cận khác.
+
+Bảng~\ref{tab:comparison-configurations} mô tả các cấu hình được sử dụng trong đánh giá.
+
+{\small
+\renewcommand{\arraystretch}{1.2}
+\begin{longtable}{|L{0.20\textwidth}|L{0.36\textwidth}|L{0.34\textwidth}|}
+\caption{Các cấu hình dùng để so sánh}\label{tab:comparison-configurations}\\
+\hline
+\textbf{Cấu hình} & \textbf{Mô tả} & \textbf{Vai trò trong đánh giá} \\
+\hline
+\endfirsthead
+
+\hline
+\textbf{Cấu hình} & \textbf{Mô tả} & \textbf{Vai trò trong đánh giá} \\
+\hline
+\endhead
+
+CRS baseline & OWASP CRS chạy với cấu hình PL và threshold cố định, chưa thêm custom generalized rules. & Xác định năng lực phát hiện và FP của CRS gốc trong cùng môi trường. \\
+\hline
+Enumeration-based rules & Cấu hình custom rules theo hướng liệt kê payload, hàm hoặc keyword đã biết. & Là baseline nghiên cứu để so sánh với hướng generalized/context-aware. \\
+\hline
+Custom rules v2 chưa tuning & Bật XSS/SQLi generalized rules v2 nhưng chưa áp dụng đầy đủ tuning exclusions. & Đánh giá tác động riêng của thiết kế rule v2 tới recall và FP. \\
+\hline
+Custom rules v2 sau tuning & Bật XSS/SQLi generalized rules v2 và tuning exclusions dựa trên audit log. & Cấu hình chính của khóa luận, dùng để đánh giá RQ1--RQ4. \\
+\hline
+AI-based reference & Mô hình AI hoặc kết quả từ tài liệu tham chiếu, không nhất thiết chạy inline trong cùng WAF pipeline. & Dùng cho phân tích định tính/định lượng tham chiếu ở RQ5. \\
+\hline
+\end{longtable}
+}
+
+Khi so sánh các cấu hình WAF rule-based, chỉ số được tính trực tiếp từ cùng benchmark pipeline. Với AI-based detection, nếu mô hình không được triển khai trong cùng môi trường, kết quả chỉ được dùng như tham chiếu và cần được thảo luận thận trọng. Điều này tránh diễn giải sai rằng các chỉ số từ hai môi trường khác nhau là so sánh tuyệt đối.
+
+\section{Dữ liệu thực nghiệm}
+\label{sec:experimental-datasets}
+
+Dữ liệu đánh giá cần bao gồm cả payload tấn công và request hợp lệ. Nếu chỉ dùng payload tấn công, thí nghiệm có thể đo được recall nhưng không đo được false positive rate. Ngược lại, nếu chỉ dùng benign traffic, thí nghiệm không cho biết rule có còn phát hiện được tấn công hay không. Vì vậy, khóa luận kết hợp các benchmark adversarial và dataset benign/mixed để đánh giá đầy đủ hơn.
+
+Bảng~\ref{tab:experimental-datasets} tóm tắt vai trò của các tập dữ liệu chính.
+
+{\small
+\renewcommand{\arraystretch}{1.2}
+\begin{longtable}{|L{0.20\textwidth}|L{0.20\textwidth}|L{0.25\textwidth}|L{0.25\textwidth}|}
+\caption{Các tập dữ liệu dùng trong thực nghiệm}\label{tab:experimental-datasets}\\
+\hline
+\textbf{Dataset} & \textbf{Loại dữ liệu} & \textbf{Vai trò đánh giá} & \textbf{Ghi chú xử lý} \\
+\hline
+\endfirsthead
+
+\hline
+\textbf{Dataset} & \textbf{Loại dữ liệu} & \textbf{Vai trò đánh giá} & \textbf{Ghi chú xử lý} \\
+\hline
+\endhead
+
+GoTestWAF & Payload tấn công/evasion. & Đánh giá khả năng phát hiện payload được thiết kế để bypass WAF, đặc biệt nhóm encoded/obfuscated. & Cần loại các trường hợp không đại diện cho HTTP request hợp lệ hoặc gây lỗi hạ tầng như URI quá dài. \\
+\hline
+Mereani XSS & Dữ liệu XSS và benign/mixed. & Đánh giá recall XSS và false positives trên dữ liệu gần thực tế hơn payload benchmark đơn lẻ. & Cần kiểm tra các đoạn JavaScript snippet không đại diện cho request đầu vào. \\
+\hline
+XSSed-DMOZ & XSS thực tế và benign. & Đánh giá khả năng phát hiện XSS real-world và FPR trên dữ liệu sạch. & Cần loại nhãn nhiễu hoặc mẫu malicious không có execution pattern rõ ràng. \\
+\hline
+CSIC 2010 & HTTP request benign và attack. & Đo FPR trên request HTTP có cấu trúc và kiểm tra hành vi WAF ở mức request. & Dữ liệu cần chuẩn hóa về cùng format với benchmark. \\
+\hline
+ECML & Dữ liệu web traffic/mixed. & Bổ sung quy mô dữ liệu để đo accuracy, FPR và F1-score. & Cần deduplicate và thống nhất nhãn. \\
+\hline
+Tập tổng hợp & \path|all_xss|, \path|all_sqli|, \path|all_benign|. & Chạy benchmark tổng hợp sau khi chuẩn hóa dữ liệu. & Được tạo từ pipeline normalize/merge, dùng cùng schema \path|payload,label,attack_type|. \\
+\hline
+\end{longtable}
+}
+
+Các tập dữ liệu trên không có cùng nguồn gốc, cùng định dạng hoặc cùng chất lượng nhãn. Vì vậy, việc chuẩn hóa dữ liệu là một phần bắt buộc của thiết kế thực nghiệm, không phải bước phụ. Nếu không chuẩn hóa, kết quả có thể bị sai lệch do trùng payload, nhãn không nhất quán hoặc dữ liệu không thể gửi như một HTTP request hợp lệ.
+
+\section{Chuẩn hóa, làm sạch dữ liệu và tính minh bạch}
+\label{sec:data-normalization-cleaning}
+
+Pipeline dữ liệu đưa các nguồn khác nhau về cùng schema gồm \path|payload|, \path|label| và \path|attack_type|. Trường \path|payload| chứa nội dung được gửi tới WAF; trường \path|label| cho biết mẫu là malicious hay benign; trường \path|attack_type| mô tả nhóm tấn công như XSS hoặc SQLi. Cách chuẩn hóa này giúp benchmark framework xử lý các dataset khác nhau bằng cùng một logic.
+
+Quy trình làm sạch dữ liệu có ba mục tiêu. Thứ nhất, loại bỏ bản ghi lỗi kỹ thuật như dòng rỗng, payload không thể gửi qua HTTP hoặc chuỗi gây lỗi hạ tầng không liên quan tới WAF rule. Thứ hai, giảm nhiễu nhãn bằng cách kiểm tra các mẫu được gán malicious nhưng không có dấu hiệu tấn công tương ứng. Thứ ba, loại bỏ hoặc tách riêng các snippet không đại diện cho request đầu vào, ví dụ đoạn mã JavaScript đầy đủ được scrape từ trang web nhưng không phải payload người dùng gửi lên.
+
+Bảng~\ref{tab:data-cleaning-rules} tóm tắt một số bước làm sạch quan trọng.
+
+{\small
+\renewcommand{\arraystretch}{1.2}
+\begin{longtable}{|L{0.22\textwidth}|L{0.34\textwidth}|L{0.34\textwidth}|}
+\caption{Các bước chuẩn hóa và làm sạch dữ liệu}\label{tab:data-cleaning-rules}\\
+\hline
+\textbf{Bước} & \textbf{Nội dung xử lý} & \textbf{Mục đích} \\
+\hline
+\endfirsthead
+
+\hline
+\textbf{Bước} & \textbf{Nội dung xử lý} & \textbf{Mục đích} \\
+\hline
+\endhead
+
+Chuẩn hóa schema & Đưa mọi dataset về các cột \path|payload,label,attack_type|. & Cho phép chạy cùng benchmark code trên nhiều nguồn dữ liệu. \\
+\hline
+Deduplication & Loại payload trùng dựa trên hash của nội dung và nhãn. & Tránh việc một payload lặp lại quá nhiều làm lệch metrics. \\
+\hline
+Loại lỗi hạ tầng & Tách các mẫu gây lỗi như URI quá dài hoặc dòng không thể gửi qua HTTP. & Không tính lỗi transport/server như false negative của WAF rule. \\
+\hline
+Kiểm tra nhãn malicious & Với XSS, kiểm tra có execution pattern như tag, event, protocol URI hoặc DOM sink hay không. & Giảm nhiễu từ các mẫu bị gán nhãn tấn công nhưng không đại diện cho XSS. \\
+\hline
+Kiểm tra benign snippets & Tách các đoạn JavaScript/HTML hoàn chỉnh không phải request payload thông thường. & Tránh đánh giá FPR trên dữ liệu không tương ứng với input thực tế của ứng dụng. \\
+\hline
+Lưu raw và clean results & Giữ cả kết quả trước và sau làm sạch. & Bảo đảm tính minh bạch và cho phép kiểm tra tác động của cleaning. \\
+\hline
+\end{longtable}
+}
+
+Điểm quan trọng là quá trình làm sạch không được dùng để loại bỏ các attack hợp lệ chỉ vì WAF chưa phát hiện được. Nếu một payload là tấn công hợp lệ và có thể được gửi qua HTTP, nó phải được giữ trong tập đánh giá hoặc ít nhất được báo cáo trong phần raw results. Vì vậy, khóa luận phân biệt giữa dữ liệu raw và dữ liệu clean: raw results cho thấy hành vi trên dữ liệu gốc, còn clean results được dùng cho đánh giá chính sau khi loại bỏ nhiễu có lý do rõ ràng.
+
+\section{Benchmark framework}
+\label{sec:benchmark-framework}
+
+Benchmark framework tự động hóa quá trình gửi payload tới WAF và ghi nhận kết quả. Hệ thống đọc từng dòng trong dataset đã chuẩn hóa, dựng HTTP request, gửi tới endpoint WAF, ghi lại mã phản hồi và phân loại kết quả dựa trên nhãn dữ liệu. Nếu payload malicious bị WAF chặn, kết quả là true positive; nếu malicious đi qua, kết quả là false negative. Nếu benign bị chặn, kết quả là false positive; nếu benign đi qua, kết quả là true negative.
+
+Hình~\ref{fig:benchmark-framework-flow} mô tả luồng xử lý tổng quát của benchmark framework.
 
 \begin{figure}[p]
     \centering
-    \includegraphics[width=0.92\textwidth,height=0.80\textheight,keepaspectratio]{Chapter4/modsecurity_architecture_flow.png}
-    \caption{Kiến trúc xử lý request của giải pháp ModSecurity/CRS với generalized rules}
-    \label{fig:modsecurity-architecture-flow}
+    \includegraphics[width=0.92\textwidth,height=0.80\textheight,keepaspectratio]{Chapter3/benchmark_framework_flow.png}
+    \caption{Luồng xử lý của benchmark framework}
+    \label{fig:benchmark-framework-flow}
 \end{figure}
 
-Trong môi trường thực nghiệm của đề tài, WAF được triển khai bằng image \path|owasp/modsecurity-crs:nginx|. Backend dùng container \path|ghcr.io/coreruleset/albedo:0.2.0| để nhận request sau khi WAF cho đi qua. Các file rule v2 và tuning exclusions được mount trực tiếp vào thư mục rule của CRS. Cấu hình chính gồm \path|MODSEC_RULE_ENGINE=On|, \path|BLOCKING_PARANOIA=4|, \path|DETECTION_PARANOIA=4| và \path|ANOMALY_INBOUND=5|. Audit log được ghi ở định dạng JSON để phục vụ phân tích rule match và anomaly score.
-
-Bảng~\ref{tab:solution-components} tóm tắt các thành phần triển khai chính của giải pháp.
-
-{\small
-\renewcommand{\arraystretch}{1.2}
-\begin{longtable}{|L{0.24\textwidth}|L{0.32\textwidth}|L{0.34\textwidth}|}
-\caption{Các thành phần trong kiến trúc giải pháp}\label{tab:solution-components}\\
-\hline
-\textbf{Thành phần} & \textbf{Vai trò} & \textbf{Cấu hình/ghi chú} \\
-\hline
-\endfirsthead
-
-\hline
-\textbf{Thành phần} & \textbf{Vai trò} & \textbf{Cấu hình/ghi chú} \\
-\hline
-\endhead
-
-ModSecurity/CRS WAF & Kiểm tra request, áp dụng rule, ghi log và cộng điểm anomaly. & Sử dụng \path|owasp/modsecurity-crs:nginx|, rule engine bật ở chế độ \path|On|. \\
-\hline
-Backend Albedo & Ứng dụng đích phía sau WAF trong môi trường benchmark. & Dùng image \path|ghcr.io/coreruleset/albedo:0.2.0|, nhận request khi WAF không chặn. \\
-\hline
-XSS generalized rules v2 & Phát hiện XSS theo hướng context-aware. & File \path|REQUEST-941-XSS-GENERALIZED-v2.conf|, dải ID \path|9942000-9942074|. \\
-\hline
-SQLi generalized rules v2 & Phát hiện SQLi theo hướng semantic-based. & File \path|REQUEST-942-SQLI-GENERALIZED-v2.conf|, dải ID \path|9943000-9943043|. \\
-\hline
-Tuning exclusions & Giảm false positives từ các rule CRS quá tổng quát hoặc trùng logic. & File \path|TUNING-EXCLUSIONS.conf| được mount thành \path|REQUEST-900-TUNING-EXCLUSIONS.conf|. \\
-\hline
-Anomaly scoring engine & Tổng hợp điểm và quyết định chặn theo threshold. & Cấu hình \path|ANOMALY_INBOUND=5|; nhóm rule \path|949xxx| thực hiện đánh giá tổng điểm. \\
-\hline
-Audit log & Lưu rule match, message, severity và thông tin transaction. & Ghi JSON tại \path|/var/log/nginx/modsec_audit.log| để phục vụ phân tích FP/FN. \\
-\hline
-\end{longtable}
-}
-
-Điểm quan trọng của kiến trúc này là custom rules v2 không thay thế toàn bộ CRS. Chúng được thiết kế để bổ sung và chuyên biệt hóa khả năng phát hiện XSS/SQLi, đồng thời tận dụng cơ chế scoring sẵn có của CRS. Việc tuning exclusions chỉ được áp dụng có chọn lọc trong phạm vi nghiên cứu để giảm nhiễu và giảm false positives, không phải khuyến nghị cấu hình mặc định cho mọi hệ thống production.
-
-\section{Nguyên tắc thiết kế bộ luật v2}
-\label{sec:rule-design-principles}
-
-Bộ luật v2 được thiết kế theo hướng generalized thay vì enumeration-based. Cách tiếp cận enumeration-based thường mở rộng danh sách payload, từ khóa hoặc hàm đã biết. Cách này dễ triển khai ban đầu nhưng khó bao phủ các biến thể mới và dễ gây false positives khi pattern quá rộng. Ngược lại, generalized rules cố gắng mô tả cấu trúc hoặc ngữ cảnh tấn công ở mức tổng quát hơn: XSS được nhìn dưới góc độ execution context, còn SQLi được nhìn dưới góc độ semantic pattern của câu lệnh SQL bị chèn.
-
-Nguyên tắc đầu tiên là context-aware detection cho XSS. Một chuỗi như \path|script|, \path|alert| hoặc \path|onload| không luôn là tấn công. Nó có thể xuất hiện trong tài liệu kỹ thuật, nội dung bài viết hoặc dữ liệu hợp lệ. Vì vậy, rule XSS v2 không chỉ kiểm tra sự tồn tại của từ khóa mà còn kiểm tra vị trí và ngữ cảnh thực thi, ví dụ thẻ \path|<script>| có nội dung thực thi, event handler có giá trị nguy hiểm, protocol URI \path|javascript:|, hoặc DOM sink như \path|innerHTML| đi kèm HTML/script injection.
-
-Nguyên tắc thứ hai là semantic-based detection cho SQLi. SQLi v2 không bắt các keyword rời như \path|select| hoặc \path|or| một cách độc lập, vì các từ này có thể xuất hiện trong dữ liệu hợp lệ. Thay vào đó, rule tập trung vào các cấu trúc có ý nghĩa injection, chẳng hạn \path|UNION SELECT|, stacked query bắt đầu bằng dấu chấm phẩy và theo sau là DML/DDL keyword, quote kết hợp toán tử logic và tautology, hàm time-based blind SQLi hoặc truy cập system catalog.
-
-Nguyên tắc thứ ba là chuẩn hóa dữ liệu trước khi so khớp. Payload tấn công có thể được URL encode, HTML entity encode, JavaScript escape, chèn null byte hoặc chèn khoảng trắng bất thường. Vì vậy, nhiều rule v2 sử dụng các transformation như \path|t:urlDecodeUni|, \path|t:htmlEntityDecode|, \path|t:jsDecode|, \path|t:removeNulls| và \path|t:compressWhitespace| trước khi áp dụng regex. Với Base64, giải pháp dùng các rule chuyên biệt để decode rồi kiểm tra lại nội dung đã decode, thay vì coi mọi chuỗi Base64 là tấn công.
-
-Nguyên tắc thứ tư là hiệu chỉnh severity theo độ tin cậy của dấu hiệu. Các pattern có độ tin cậy cao như \path|UNION SELECT|, event handler gọi hàm nguy hiểm hoặc protocol URI \path|javascript:| được gán mức \path|CRITICAL|. Các pattern encoded/obfuscated hoặc error-based có thể gán \path|ERROR|. Các pattern context-specific hoặc heuristic nâng cao có thể gán \path|WARNING| hoặc \path|NOTICE|. Cách phân tầng này giúp rule v2 hòa vào anomaly scoring thay vì chặn mọi dấu hiệu với cùng mức nghiêm trọng.
-
-Nguyên tắc cuối cùng là giảm false positives bằng cách giới hạn phạm vi input target và tổ chức rule dễ bảo trì. XSS v2 cố ý không scan \path|REQUEST_HEADERS:User-Agent| vì header này thường chứa chuỗi phức tạp từ trình duyệt, bot hoặc công cụ tự động, dễ gây FP nếu kiểm tra quá rộng. Các rule được chia theo dải ID và lớp kỹ thuật, giúp khi xuất hiện bypass mới có thể thêm rule vào đúng lớp thay vì nối thêm payload vào một regex lớn khó kiểm soát.
-
-\section{Thiết kế XSS generalized rules v2}
-\label{sec:xss-rules-v2}
-
-Bộ XSS generalized rules v2 được triển khai trong file \path|REQUEST-941-XSS-GENERALIZED-v2.conf| với dải ID \path|9942000-9942074|. Rule \path|9942000| là rule khởi tạo, đặt biến \path|tx.xss_score_v2| về 0 ở đầu quá trình xử lý. Các rule còn lại phát hiện những nhóm XSS khác nhau và cộng điểm vào cả biến riêng \path|tx.xss_score_v2| lẫn biến \path|tx.inbound_anomaly_score_pl*| của CRS.
-
-Tư tưởng chính của XSS v2 là phát hiện dựa trên ngữ cảnh thực thi. Thay vì chặn mọi HTML tag hoặc mọi event handler, rule cố gắng xác định khi nào dữ liệu đầu vào có khả năng tạo execution context trong trình duyệt. Bảng~\ref{tab:xss-v2-layers} tóm tắt các lớp chính của XSS v2.
-
-{\small
-\setlength{\tabcolsep}{4pt}
-\renewcommand{\arraystretch}{1.25}
-\begin{longtable}{|L{0.17\textwidth}|C{0.15\textwidth}|C{0.13\textwidth}|L{0.43\textwidth}|}
-\caption{Các lớp phát hiện trong XSS generalized rules v2}\label{tab:xss-v2-layers}\\
-\hline
-\textbf{Lớp} & \textbf{Rule ID} & \textbf{Severity} & \textbf{Mục tiêu và kỹ thuật tiêu biểu} \\
-\hline
-\endfirsthead
-
-\hline
-\textbf{Lớp} & \textbf{Rule ID} & \textbf{Severity} & \textbf{Mục tiêu và kỹ thuật tiêu biểu} \\
-\hline
-\endhead
-
-L1 Core XSS & \makecell{\texttt{9942001}\\--\\\texttt{9942004}} & \texttt{CRITICAL} & Phát hiện các ngữ cảnh XSS trực tiếp, có độ tin cậy cao, ví dụ \path|<script>| có execution, \path|onerror=alert| và protocol URI \path|javascript:|. \\
-\hline
-L2 Structural injection & \makecell{\texttt{9942010}\\--\\\texttt{9942013}} & \texttt{CRITICAL} & Phát hiện cấu trúc HTML/SVG/CSS có khả năng kích hoạt mã, gồm SVG event, iframe/object có nguồn nguy hiểm, CSS execution và executable \path|data:| URI. \\
-\hline
-L3 Encoded/obfuscated & \makecell{\texttt{9942020}\\--\\\texttt{9942025}} & \texttt{ERROR} & Phát hiện payload bị mã hóa hoặc chia nhỏ để né regex trực tiếp, gồm double URL encode, HTML entity, Base64 decode-and-check và string concatenation. \\
-\hline
-L4 DOM context & \makecell{\texttt{9942030}\\--\\\texttt{9942032}} & \texttt{WARNING} & Phát hiện DOM-based XSS và cách gọi hàm gián tiếp, ví dụ \path|innerHTML|, \path|document.write|, bracket notation và template literal. \\
-\hline
-L5 Advanced/heuristic & \makecell{\texttt{9942040}\\--\\\texttt{9942074}} & \makecell{\texttt{NOTICE}\\--\\\texttt{CRITICAL}} & Phát hiện các kỹ thuật bypass nâng cao và lớp Base64 chuyên biệt, gồm prototype chain, optional chaining, array callback, function alias và tag splitting. \\
-\hline
-\end{longtable}
-}
-
-\subsection{Lớp 1: Core XSS}
-\label{subsec:xss-core-layer}
-
-Lớp 1 tập trung vào các dấu hiệu XSS trực tiếp và có độ tin cậy cao. Rule \path|9942001| phát hiện thẻ \path|<script>| khi bên trong có execution context như \path|alert|, \path|eval|, \path|document.cookie|, \path|location| hoặc các thao tác DOM nguy hiểm. Điểm quan trọng là rule không chỉ bắt sự xuất hiện của chuỗi \path|<script>|, vì một thẻ script tham chiếu tài nguyên hợp lệ có thể xuất hiện trong dữ liệu benign.
-
-Rule \path|9942002| phát hiện event handler có giá trị nguy hiểm. Một thuộc tính như \path|onsubmit| không tự động bị xem là XSS; rule chỉ có ý nghĩa khi phần giá trị sau dấu bằng gọi hàm hoặc đối tượng nguy hiểm, chẳng hạn \path|alert|, \path|eval|, \path|document.|, \path|window.|, \path|Function| hoặc \path|setTimeout|. Cách này thể hiện rõ nguyên tắc context-aware: cùng là event handler, nhưng giá trị thực thi quyết định mức rủi ro.
-
-Rule \path|9942003| phát hiện protocol URI như \path|javascript:| hoặc \path|vbscript:|, kể cả khi chuỗi bị chèn khoảng trắng hoặc ký tự điều khiển giữa các chữ cái. Rule \path|9942004| phát hiện các dangerous JavaScript function calls và thao tác nguy hiểm như truy cập cookie hoặc gán vào location. Các rule lớp 1 đều có severity \path|CRITICAL| và cộng điểm vào \path|tx.inbound_anomaly_score_pl1|, vì đây là các tín hiệu có độ tin cậy cao.
-
-\subsection{Lớp 2: Structural injection}
-\label{subsec:xss-structural-layer}
-
-Lớp 2 xử lý các cấu trúc HTML hoặc browser feature có thể tạo execution context mà không nhất thiết dùng trực tiếp thẻ \path|<script>|. Rule \path|9942010| tập trung vào các thẻ như SVG, MathML, media tag hoặc các cấu trúc tương tự khi đi kèm event handler. Đây là nhóm quan trọng vì nhiều payload XSS sử dụng \path|<svg onload=...>| hoặc các biến thể tương tự để kích hoạt JavaScript.
-
-Rule \path|9942011| phát hiện các thẻ nhúng nội dung bên ngoài như \path|iframe|, \path|object|, \path|embed| hoặc \path|applet| khi thuộc tính nguồn có dấu hiệu đáng ngờ như \path|javascript:| hoặc \path|data:|. Rule \path|9942012| phát hiện style injection có execution context, ví dụ \path|expression()|, \path|behavior:| hoặc URL trong CSS trỏ tới \path|javascript:|. Rule \path|9942013| phát hiện \path|data:| URI với MIME có thể thực thi như \path|text/html| hoặc JavaScript.
-
-Các rule structural injection cũng được gán \path|CRITICAL|, nhưng được cộng vào \path|tx.inbound_anomaly_score_pl2|. Việc tách lớp giúp phân biệt giữa core XSS trực tiếp và các cấu trúc HTML/CSS/SVG nguy hiểm, đồng thời giúp audit log dễ truy vết nguyên nhân hơn.
-
-\subsection{Lớp 3: Encoded và obfuscated XSS}
-\label{subsec:xss-encoded-layer}
-
-Lớp 3 xử lý payload đã bị mã hóa hoặc biến đổi để né rule đơn giản. Rule \path|9942020| phát hiện double/triple URL encoding, ví dụ các dạng biểu diễn của dấu nhỏ hơn hoặc thẻ HTML bị mã hóa nhiều lớp. Với những payload như vậy, nếu WAF chỉ decode một lần hoặc không kiểm tra dạng encoded nguyên bản, payload có thể đi qua và chỉ trở thành mã nguy hiểm ở phía ứng dụng.
-
-Rule \path|9942021| phát hiện HTML entity bypass, chẳng hạn \path|&lt;script| hoặc các entity biểu diễn dấu hai chấm, dấu ngoặc và ký tự liên quan tới JavaScript. Rule \path|9942024| nhắm tới string concatenation bypass, nơi tên hàm hoặc chuỗi nguy hiểm được chia nhỏ rồi nối lại ở runtime. Các kỹ thuật này cho thấy XSS không chỉ xuất hiện dưới dạng chuỗi rõ ràng, mà có thể được biểu diễn bằng nhiều lớp ngữ pháp khác nhau của HTML và JavaScript.
-
-Một điểm đáng chú ý trong lớp 3 là chuỗi rule \path|9942022-9942025| cho Base64. Rule đầu tiên bắt candidate có dạng Base64, rule tiếp theo decode và lưu vào biến \path|TX|, sau đó rule kiểm tra nội dung đã decode có chứa XSS execution context hay không. Thiết kế này tránh việc chặn mọi chuỗi Base64, đồng thời vẫn phát hiện được payload bị giấu trong lớp mã hóa. Các rule lớp 3 thường có severity \path|ERROR| và cộng vào \path|tx.inbound_anomaly_score_pl3|.
-
-\subsection{Lớp 4: DOM context}
-\label{subsec:xss-dom-layer}
-
-Lớp 4 tập trung vào DOM-based XSS và các cách gọi hàm gián tiếp trong JavaScript. Rule \path|9942030| phát hiện thao tác DOM như \path|innerHTML|, \path|outerHTML|, \path|document.write| hoặc các sink tương tự khi đi kèm nội dung HTML/script nguy hiểm. Đây là nhóm quan trọng vì DOM-based XSS thường không chỉ dựa vào thẻ HTML, mà dựa vào việc JavaScript phía client ghi dữ liệu không tin cậy vào DOM.
-
-Rule \path|9942031| phát hiện bracket notation execution, ví dụ \path|window['alert']| hoặc các biến thể gọi hàm thông qua tên chuỗi. Kỹ thuật này thường được dùng để né regex chỉ bắt lời gọi hàm trực tiếp. Rule \path|9942032| phát hiện template literal hoặc cú pháp gọi hàm đặc thù của JavaScript hiện đại. Các rule lớp 4 được gán \path|WARNING| vì chúng mang tính context-specific hơn, có thể cần kết hợp với các tín hiệu khác trong anomaly scoring.
-
-\subsection{Lớp 5: Advanced heuristic và Base64 dedicated layer}
-\label{subsec:xss-advanced-layer}
-
-Lớp 5 bao gồm các kỹ thuật bypass nâng cao, với severity thay đổi từ \path|NOTICE| đến \path|CRITICAL| tùy mức độ nguy hiểm của pattern. Rule \path|9942040| xử lý prototype chain exploitation; rule \path|9942041| phát hiện advanced function reference như gọi hàm qua \path|call|, đặt hàm trong ngoặc hoặc dùng cú pháp ít phổ biến. Rule \path|9942057| phát hiện JS context break-out, tức payload cố thoát khỏi chuỗi hoặc ngữ cảnh JavaScript hiện có để chèn lệnh mới.
-
-Một số rule khác trong lớp này xử lý array callback XSS, variable assignment/function alias, named entity bypass, custom tag kết hợp event handler, optional chaining và double angle bracket. Rule \path|9942074| nhắm tới tag-splitting evasion, khi payload chia nhỏ token nguy hiểm bằng thẻ hoặc ký tự xen giữa để làm regex trực tiếp không khớp. Các rule này không nhất thiết cùng một mức severity vì độ tin cậy của từng pattern khác nhau.
-
-Ngoài chuỗi Base64 trong lớp 3, XSS v2 còn có dedicated Base64 layer ở dải \path|9942070-9942074|. Lớp này áp dụng \path|t:base64Decode| có chủ đích, sau đó kiểm tra lại nội dung đã decode bằng các pattern XSS. Vai trò của lớp này là tăng khả năng phát hiện payload bị đóng gói trong Base64, đặc biệt trong các benchmark evasion. Tuy nhiên, Base64 decode vẫn cần được xem như lớp bổ sung, không phải bằng chứng tấn công nếu không có execution context sau decode.
-
-Thiết kế XSS v2 là cơ sở kỹ thuật để trả lời RQ1 và RQ2. RQ1 được kiểm chứng bằng việc so sánh false positives của context-aware rules với enumeration-based rules; RQ2 được kiểm chứng bằng các payload encoded/obfuscated và các false negatives còn lại sau benchmark.
-
-\section{Thiết kế SQLi generalized rules v2}
-\label{sec:sqli-rules-v2}
-
-Bộ SQLi generalized rules v2 được triển khai trong file \path|REQUEST-942-SQLI-GENERALIZED-v2.conf| với dải ID \path|9943000-9943043|. Rule \path|9943000| khởi tạo biến \path|tx.sqli_score_v2|. Các rule còn lại phát hiện SQL Injection theo hướng semantic-based, tức tập trung vào cấu trúc injection và hành vi truy vấn hơn là bắt keyword rời.
-
-SQLi v2 bao phủ nhiều nhóm kỹ thuật phổ biến trên nhiều hệ quản trị cơ sở dữ liệu. Một số rule nhắm tới cú pháp chung như \path|UNION SELECT| hoặc stacked query; một số rule nhắm tới hàm đặc thù như \path|sleep|, \path|waitfor delay|, \path|pg_sleep|, \path|extractvalue| hoặc \path|xp_dirtree|. Bảng~\ref{tab:sqli-v2-layers} tóm tắt các lớp chính của SQLi v2.
-
-{\small
-\setlength{\tabcolsep}{4pt}
-\renewcommand{\arraystretch}{1.25}
-\begin{longtable}{|L{0.17\textwidth}|C{0.15\textwidth}|C{0.13\textwidth}|L{0.43\textwidth}|}
-\caption{Các lớp phát hiện trong SQLi generalized rules v2}\label{tab:sqli-v2-layers}\\
-\hline
-\textbf{Lớp} & \textbf{Rule ID} & \textbf{Severity} & \textbf{Mục tiêu và kỹ thuật tiêu biểu} \\
-\hline
-\endfirsthead
-
-\hline
-\textbf{Lớp} & \textbf{Rule ID} & \textbf{Severity} & \textbf{Mục tiêu và kỹ thuật tiêu biểu} \\
-\hline
-\endhead
-
-L1 Classic SQLi & \makecell{\texttt{9943001}\\--\\\texttt{9943003}} & \texttt{CRITICAL} & Phát hiện các cấu trúc SQLi trực tiếp, thường gặp, gồm \path|UNION SELECT|, stacked query và boolean authentication bypass. \\
-\hline
-L2 Blind SQLi & \makecell{\texttt{9943010}\\--\\\texttt{9943011}} & \texttt{CRITICAL} & Phát hiện suy luận dữ liệu qua thời gian hoặc điều kiện đúng/sai, ví dụ \path|sleep|, \path|waitfor delay|, \path|pg_sleep| và \path|AND 1=1|. \\
-\hline
-L3 Error/OOB & \makecell{\texttt{9943020}\\--\\\texttt{9943021}} & \texttt{ERROR} & Phát hiện trích xuất dữ liệu qua lỗi hoặc kênh ngoài, gồm \path|extractvalue|, \path|updatexml|, \path|load_file| và \path|xp_dirtree|. \\
-\hline
-L4 Advanced/encoding & \makecell{\texttt{9943030}\\--\\\texttt{9943032}} & \texttt{WARNING} & Phát hiện truy cập schema, obfuscation và mã hóa keyword, ví dụ \path|information_schema|, SQL comments và hex/CHAR encoded keywords. \\
-\hline
-\makecell[l]{L5 Heuristic\\mở rộng} & \makecell{\texttt{9943040}\\--\\\texttt{9943043}} & \texttt{NOTICE} & Lớp mở rộng cho stored procedure nguy hiểm, NoSQL-like patterns và Base64-decoded SQLi, ví dụ \path|xp_cmdshell| và MongoDB operators. \\
-\hline
-\end{longtable}
-}
-
-\subsection{Lớp 1: Classic SQLi}
-\label{subsec:sqli-classic-layer}
-
-Lớp 1 phát hiện các cấu trúc SQL Injection trực tiếp và có độ tin cậy cao. Rule \path|9943001| phát hiện \path|UNION SELECT|, bao gồm cả biến thể \path|UNION ALL SELECT|. Rule sử dụng ranh giới từ để tránh match một phần trong chuỗi hợp lệ. Đây là ví dụ điển hình của semantic-based detection: không bắt mọi từ \path|select|, mà bắt cấu trúc kết hợp \path|UNION| và \path|SELECT| có ý nghĩa rõ ràng trong SQLi.
-
-Rule \path|9943002| phát hiện stacked query, tức dấu chấm phẩy theo sau bởi câu lệnh SQL khác như \path|DROP|, \path|INSERT|, \path|UPDATE|, \path|DELETE|, \path|ALTER| hoặc \path|EXEC|. Dấu chấm phẩy đơn lẻ không đủ để kết luận SQLi; rule cần sự kết hợp giữa delimiter và DML/DDL/execute keyword. Rule \path|9943003| phát hiện boolean authentication bypass, ví dụ quote kết hợp \path|OR| hoặc \path|AND| với biểu thức luôn đúng và comment SQL.
-
-Các rule lớp 1 có severity \path|CRITICAL| và cộng điểm vào \path|tx.inbound_anomaly_score_pl1|. Với ngưỡng inbound anomaly bằng 5, một match \path|CRITICAL| thường đủ để request bị chặn sau bước đánh giá tổng điểm.
-
-\subsection{Lớp 2: Blind SQLi}
-\label{subsec:sqli-blind-layer}
-
-Lớp 2 tập trung vào blind SQLi, nơi ứng dụng không trả trực tiếp dữ liệu hoặc lỗi SQL nhưng vẫn có thể rò rỉ thông tin qua thời gian phản hồi hoặc khác biệt logic. Rule \path|9943010| phát hiện time-based blind SQLi trên nhiều DBMS. Các pattern gồm \path|sleep| và \path|benchmark| trong MySQL, \path|waitfor delay| trong SQL Server, \path|pg_sleep| trong PostgreSQL và \path|dbms_pipe.receive_message| trong Oracle.
-
-Rule \path|9943011| phát hiện boolean inference pattern, ví dụ \path|AND 1=1|, \path|OR 1=1| hoặc các biến thể có comment phía sau. Những pattern này thể hiện hành vi suy luận đúng/sai thường dùng trong blind SQLi. Tương tự lớp 1, rule không chỉ bắt toán tử \path|AND| hoặc \path|OR| rời rạc, mà cần đi kèm cấu trúc điều kiện có tính injection.
-
-Việc hỗ trợ nhiều DBMS giúp SQLi v2 tổng quát hơn so với cách chỉ liệt kê một vài payload cụ thể. Tuy nhiên, rule vẫn cần giới hạn pattern để tránh bắt nhầm các chuỗi hợp lệ chứa tên hàm hoặc thuật ngữ SQL trong văn bản.
-
-\subsection{Lớp 3: Error-based và out-of-band SQLi}
-\label{subsec:sqli-error-oob-layer}
-
-Lớp 3 xử lý các kỹ thuật khai thác lỗi và kênh ngoài. Rule \path|9943020| phát hiện error-based SQLi thông qua các hàm hoặc biểu thức thường dùng để ép cơ sở dữ liệu sinh lỗi có chứa dữ liệu, chẳng hạn \path|extractvalue|, \path|updatexml|, \path|floor(rand())| hoặc một số spatial functions. Những pattern này không chỉ là keyword SQL thông thường mà là dấu hiệu của kỹ thuật trích xuất thông tin qua thông báo lỗi.
-
-Rule \path|9943021| phát hiện out-of-band SQLi hoặc hành vi đọc/ghi file thông qua cơ sở dữ liệu. Các ví dụ gồm \path|load_file|, \path|into outfile|, \path|utl_http.request|, \path|xp_dirtree| và \path|openrowset|. Đây là các khả năng đặc thù của DBMS có thể bị lợi dụng để đọc file, ghi file hoặc tạo request ra ngoài. Lớp này được gán severity \path|ERROR|, phản ánh mức nguy hiểm cao nhưng vẫn thấp hơn \path|CRITICAL| trong scoring.
-
-\subsection{Lớp 4: Advanced và encoding SQLi}
-\label{subsec:sqli-advanced-layer}
-
-Lớp 4 bao gồm schema enumeration, comment obfuscation và encoded keyword. Rule \path|9943030| phát hiện truy cập metadata hoặc system catalog như \path|information_schema|, \path|mysql.user|, \path|pg_catalog| hoặc \path|sqlite_master|. Những cấu trúc này thường xuất hiện khi kẻ tấn công muốn liệt kê bảng, cột, người dùng hoặc cấu trúc cơ sở dữ liệu.
-
-Rule \path|9943031| phát hiện SQL comment obfuscation, bao gồm MySQL conditional comments và kỹ thuật chèn comment giữa các ký tự của keyword. Rule \path|9943032| phát hiện keyword SQL được biểu diễn bằng hex hoặc hàm \path|CHAR|. Đây là các kỹ thuật nhằm làm cho payload không còn chứa keyword rõ ràng, nhưng sau khi cơ sở dữ liệu xử lý lại trở thành câu lệnh SQL có ý nghĩa.
-
-Các rule lớp 4 có severity \path|WARNING| và cộng điểm vào \path|tx.inbound_anomaly_score_pl4|. Mức này phù hợp với các dấu hiệu nâng cao, có giá trị cảnh báo nhưng cần thận trọng hơn để tránh false positives trên dữ liệu kỹ thuật hợp lệ.
-
-\subsection{Lớp 5: Heuristic, NoSQL và Base64}
-\label{subsec:sqli-heuristic-layer}
-
-Lớp 5 là lớp mở rộng với severity \path|NOTICE|. Rule \path|9943040| phát hiện các stored procedure hoặc cơ chế có thể dẫn tới thực thi lệnh hệ điều hành thông qua SQL, ví dụ \path|xp_cmdshell|, \path|sp_executesql|, \path|sp_oacreate| hoặc \path|sp_oamethod|. Đây là vùng giao giữa SQLi và command execution, có ý nghĩa bảo mật cao nhưng không phải trọng tâm chính của đề tài.
-
-Rule \path|9943041| phát hiện một số NoSQL-like patterns, đặc biệt các toán tử MongoDB như \path|$where|, \path|$gt|, \path|$ne|, \path|$regex| hoặc các biểu thức có cấu trúc JSON/operator đáng ngờ. Phần này được xem là coverage bổ sung, không mở rộng phạm vi chính của khóa luận ra khỏi XSS và SQL Injection truyền thống.
-
-Cuối cùng, rule \path|9943042-9943043| xử lý Base64-decoded SQLi. Tương tự XSS, rule đầu tiên decode và lưu nội dung vào biến \path|TX|, rule sau kiểm tra nội dung đã decode để tìm semantic SQLi patterns như \path|UNION SELECT|, stacked query hoặc time-based blind. Việc tách decode và detect giúp giảm khả năng chặn nhầm chỉ vì input có dạng Base64.
-
-Thiết kế SQLi v2 là cơ sở kỹ thuật để trả lời RQ3. Khi đánh giá, trọng tâm không chỉ là một vài payload cụ thể có bị chặn hay không, mà là các semantic patterns có mở rộng coverage cho nhiều nhóm SQLi và nhiều DBMS hơn hướng enumeration-based hay không.
-
-\section{Decode pipeline và chuẩn hóa dữ liệu đầu vào}
-\label{sec:solution-decode-pipeline}
-
-Decode pipeline là thành phần quan trọng trong thiết kế rule v2 vì nhiều payload tấn công không xuất hiện ở dạng rõ ràng. Một payload XSS có thể dùng URL encoding để che dấu dấu \path|<| và \path|>|, HTML entity để che dấu thẻ, JavaScript escape để che dấu chuỗi, hoặc null byte và khoảng trắng bất thường để phá vỡ regex. SQLi cũng có thể dùng comment obfuscation, hex encoding hoặc Base64 để làm mờ cấu trúc truy vấn.
-
-Các transform phổ biến trong XSS v2 gồm \path|t:urlDecodeUni|, \path|t:htmlEntityDecode|, \path|t:jsDecode|, \path|t:removeNulls| và \path|t:compressWhitespace|. Với SQLi v2, các transform thường gặp là \path|t:urlDecodeUni|, \path|t:htmlEntityDecode|, \path|t:removeNulls| và \path|t:compressWhitespace|. Riêng Base64 được xử lý bằng \path|t:base64Decode| trong các rule chuyên biệt, vì không phải mọi input Base64 đều độc hại.
-
-Bảng~\ref{tab:decode-transforms} tóm tắt vai trò của các transform chính trong giải pháp.
-
-{\small
-\renewcommand{\arraystretch}{1.2}
-\begin{longtable}{|L{0.25\textwidth}|L{0.35\textwidth}|L{0.30\textwidth}|}
-\caption{Các transformation chính trong decode pipeline}\label{tab:decode-transforms}\\
-\hline
-\textbf{Transform} & \textbf{Vai trò} & \textbf{Ứng dụng trong rule v2} \\
-\hline
-\endfirsthead
-
-\hline
-\textbf{Transform} & \textbf{Vai trò} & \textbf{Ứng dụng trong rule v2} \\
-\hline
-\endhead
-
-\path|t:urlDecodeUni| & Decode URL encoding và một số dạng unicode encoding trong URL/request. & Dùng rộng rãi trong XSS/SQLi để đưa payload về dạng gần với dữ liệu ứng dụng xử lý. \\
-\hline
-\path|t:htmlEntityDecode| & Decode HTML entity như \path|&lt;|, \path|&gt;| hoặc entity dạng số. & Quan trọng với XSS entity bypass và một số payload HTML-encoded. \\
-\hline
-\path|t:jsDecode| & Decode escape sequence trong JavaScript, ví dụ hex/unicode escape. & Chủ yếu dùng trong XSS và một số NoSQL/JavaScript-like context. \\
-\hline
-\path|t:removeNulls| & Loại bỏ null byte có thể được chèn để phá vỡ chuỗi token. & Hữu ích với protocol URI, tag name hoặc keyword bị chèn byte rỗng. \\
-\hline
-\path|t:compressWhitespace| & Chuẩn hóa nhiều whitespace thành dạng gọn hơn. & Giúp phát hiện payload chèn tab, xuống dòng hoặc nhiều khoảng trắng giữa token. \\
-\hline
-\path|t:base64Decode| & Decode nội dung Base64 trong các rule chuyên biệt. & Dùng trong lớp Base64 của XSS và SQLi, sau đó kiểm tra lại nội dung đã decode. \\
-\hline
-\end{longtable}
-}
-
-Không phải mọi rule đều dùng cùng một chuỗi transform. Một số rule cần kiểm tra dạng encoded nguyên bản, ví dụ double URL encoding như \path|%253C|; nếu decode quá sớm hoặc decode theo thứ tự không phù hợp, dấu hiệu cần bắt có thể biến mất. Do đó, rule v2 kết hợp hai cách: decode inline trước regex cho các pattern cần chuẩn hóa, và decode qua biến trung gian \path|TX| cho các trường hợp như Base64. Thiết kế này giúp tăng khả năng phát hiện các nhóm encoding phổ biến, nhưng không được hiểu là bảo đảm phát hiện mọi kỹ thuật encoding trong tương lai.
-
-\section{Tích hợp với anomaly scoring của OWASP CRS}
-\label{sec:solution-anomaly-scoring}
-
-Một đặc điểm quan trọng của giải pháp là custom rules v2 tích hợp với anomaly scoring của OWASP CRS. Mỗi rule khi khớp sẽ dùng hành động \path|setvar| để cộng điểm vào biến \path|tx.inbound_anomaly_score_pl*| tương ứng. Đồng thời, rule cũng cộng điểm vào biến riêng như \path|tx.xss_score_v2| hoặc \path|tx.sqli_score_v2| để phục vụ theo dõi nội bộ và phân tích audit log. Quyết định chặn cuối cùng vẫn dựa trên tổng inbound anomaly score và ngưỡng cấu hình.
-
-Trong môi trường thực nghiệm, \path|ANOMALY_INBOUND| được đặt bằng 5. Với ngưỡng này, một rule có severity \path|CRITICAL| thường đủ để request đạt ngưỡng chặn. Các severity thấp hơn như \path|ERROR|, \path|WARNING| hoặc \path|NOTICE| đóng vai trò tín hiệu bổ sung; một request có thể cần nhiều dấu hiệu kết hợp để vượt ngưỡng. Cách làm này giúp giảm khả năng chặn nhầm khi chỉ có một dấu hiệu yếu.
-
-Bảng~\ref{tab:severity-scoring-solution} trình bày ánh xạ severity được sử dụng trong thiết kế rule.
+Benchmark framework gồm các bước chính sau:
+
+\begin{enumerate}
+    \item Đọc dataset CSV đã chuẩn hóa và kiểm tra các cột bắt buộc.
+    \item Gửi từng payload tới WAF qua cùng một endpoint và cùng phương thức request.
+    \item Ghi lại mã trạng thái HTTP, thời gian phản hồi và thông tin cấu hình đang chạy.
+    \item Phân loại mỗi dòng thành TP, TN, FP hoặc FN dựa trên nhãn và trạng thái Block/Pass.
+    \item Ghi báo cáo tổng hợp gồm confusion matrix, metrics và danh sách payload bị phân loại sai.
+    \item Kết hợp audit log để xác định rule ID, message, severity và anomaly score của các request bị chặn.
+\end{enumerate}
+
+Để bảo đảm khả năng lặp lại, mỗi lần chạy benchmark cần ghi rõ phiên bản rule, cấu hình tuning, dataset, thời điểm chạy và tham số WAF. Khi so sánh trước/sau tuning, benchmark cần được chạy lại trên cùng dataset và cùng môi trường. Điều này giúp kết luận về thay đổi FPR hoặc recall có cơ sở hơn.
+
+\section{Ma trận phân loại và các chỉ số đánh giá}
+\label{sec:evaluation-metrics}
+
+Kết quả benchmark được tổng hợp bằng ma trận phân loại trong Bảng~\ref{tab:confusion-matrix}. Trục hàng là nhãn thật của dữ liệu; trục cột là quyết định của WAF.
 
 \begin{table}[htbp]
 \centering
-\caption{Ánh xạ severity và vai trò trong thiết kế rule v2}
-\label{tab:severity-scoring-solution}
+\caption{Ma trận phân loại kết quả WAF}
+\label{tab:confusion-matrix}
 \renewcommand{\arraystretch}{1.2}
-\begin{tabular}{|C{0.20\textwidth}|C{0.18\textwidth}|L{0.48\textwidth}|}
+\begin{tabular}{|L{0.24\textwidth}|C{0.26\textwidth}|C{0.26\textwidth}|}
 \hline
-\textbf{Severity} & \textbf{Điểm} & \textbf{Vai trò trong thiết kế} \\
+ & \textbf{WAF Blocked} & \textbf{WAF Passed} \\
 \hline
-\path|CRITICAL| & 5 & Pattern có độ tin cậy cao, thường đủ để chặn khi threshold bằng 5. \\
+\textbf{Label = Malicious} & True Positive (TP) & False Negative (FN) \\
 \hline
-\path|ERROR| & 4 & Pattern nguy hiểm hoặc encoded/obfuscated, nhưng cần thận trọng hơn CRITICAL. \\
-\hline
-\path|WARNING| & 3 & Pattern context-specific hoặc nâng cao, có thể cần kết hợp với tín hiệu khác. \\
-\hline
-\path|NOTICE| & 2 & Heuristic hoặc tín hiệu phụ trợ, dùng để tăng điểm khi có nhiều dấu hiệu đáng ngờ. \\
+\textbf{Label = Benign} & False Positive (FP) & True Negative (TN) \\
 \hline
 \end{tabular}
 \end{table}
 
-Việc dùng các biến \path|tx.inbound_anomaly_score_pl1| đến \path|tx.inbound_anomaly_score_pl4| cũng giúp rule v2 phù hợp với mô hình Paranoia Level của CRS. Các rule có độ tin cậy cao hơn thường cộng vào PL thấp hơn, trong khi các rule heuristic hoặc nâng cao thường cộng vào PL4. Nhờ vậy, hệ thống vẫn giữ được cấu trúc vận hành quen thuộc của CRS và dễ phân tích khi xem audit log.
+Từ TP, TN, FP và FN, khóa luận sử dụng các chỉ số sau:
 
-\section{Tuning exclusions và kiểm soát false positives}
-\label{sec:tuning-exclusions}
+\begin{align}
+\text{Recall} &= \frac{TP}{TP + FN}, \\
+\text{Precision} &= \frac{TP}{TP + FP}, \\
+\text{FPR} &= \frac{FP}{FP + TN}, \\
+\text{Accuracy} &= \frac{TP + TN}{TP + TN + FP + FN}, \\
+\text{F1-score} &= \frac{2 \times \text{Precision} \times \text{Recall}}{\text{Precision} + \text{Recall}}.
+\end{align}
 
-Bên cạnh việc thiết kế rule v2, giải pháp còn sử dụng file \path|TUNING-EXCLUSIONS.conf| để kiểm soát false positives. File này chứa 77 chỉ thị \path|SecRuleRemoveById| nhằm vô hiệu hóa có chọn lọc các CRS rules gây FP cao, quá tổng quát hoặc trùng logic với custom rules v2. Việc tuning này đặc biệt quan trọng khi CRS được chạy ở PL4, vì nhiều rule nhạy hơn được kích hoạt và có thể chặn nhầm traffic hợp lệ.
+Trong bối cảnh WAF, Recall cho biết tỷ lệ payload tấn công bị chặn, còn FPR cho biết tỷ lệ request hợp lệ bị chặn nhầm. Precision thể hiện độ tin cậy của quyết định chặn: khi WAF chặn một request, xác suất đó là tấn công cao hay thấp. Accuracy có thể hữu ích khi tập dữ liệu cân bằng, nhưng có thể gây hiểu nhầm nếu số benign lớn hơn rất nhiều số malicious. Vì vậy, khi diễn giải kết quả, khóa luận ưu tiên đọc đồng thời Recall, FPR, Precision và F1-score thay vì chỉ nhìn một chỉ số đơn lẻ.
 
-Chiến lược tuning không phải là tắt CRS một cách tùy tiện. Các custom rules v2 vẫn được giữ lại; CRS scoring engine vẫn được dùng để tổng hợp điểm; chỉ một số rule phát hiện gây nhiễu được loại khỏi pipeline. Với XSS, nhiều rule CRS nhóm \path|941xxx| được loại vì logic phát hiện đã được thay thế bằng XSS v2 có context rõ hơn. Với SQLi, một số rule \path|942xxx| được loại do quá nhạy hoặc trùng với semantic SQLi rules. Ngoài ra, một số rule protocol/character và RCE/Shell cũng được loại trong môi trường benchmark vì chúng nằm ngoài phạm vi chính XSS/SQLi hoặc tạo FP trên ký tự hợp lệ.
+\section{Phương pháp phân tích false negative và false positive}
+\label{sec:fn-fp-analysis-method}
 
-Bảng~\ref{tab:tuning-exclusions-groups} tóm tắt các nhóm exclusions quan trọng.
+Phân tích false negative nhằm trả lời câu hỏi: payload nào đã đi qua WAF và vì sao. Với mỗi FN, benchmark lưu lại payload, nhãn, attack type, dataset nguồn và cấu hình rule đang chạy. Sau đó, payload được phân nhóm theo kỹ thuật, ví dụ URL encoding nhiều lớp, HTML entity, JavaScript escape, Base64, event handler biến thể, DOM sink, SQL comment obfuscation, time-based function hoặc DBMS-specific syntax. Việc phân nhóm này giúp xác định rule cần mở rộng ở lớp nào thay vì chỉ thêm payload cụ thể vào regex.
 
-{\small
-\renewcommand{\arraystretch}{1.2}
-\begin{longtable}{|L{0.20\textwidth}|L{0.22\textwidth}|L{0.30\textwidth}|L{0.18\textwidth}|}
-\caption{Các nhóm rule được tuning bằng SecRuleRemoveById}\label{tab:tuning-exclusions-groups}\\
-\hline
-\textbf{Nhóm rule} & \textbf{Ví dụ ID} & \textbf{Lý do thiết kế} & \textbf{Rủi ro/ghi chú} \\
-\hline
-\endfirsthead
+Phân tích false positive nhằm trả lời câu hỏi: request hợp lệ nào bị chặn và rule nào gây ra việc chặn. Với mỗi FP, audit log được dùng để truy vết rule ID, message, severity, matched variable và anomaly score. Nếu nhiều FP cùng đến từ một rule CRS quá rộng hoặc trùng logic với custom rules v2, rule đó trở thành ứng viên cho tuning exclusions. Nếu FP đến từ custom rule v2, cần xem lại điều kiện ngữ cảnh của rule để tránh chặn nhầm trường hợp hợp lệ.
 
-\hline
-\textbf{Nhóm rule} & \textbf{Ví dụ ID} & \textbf{Lý do thiết kế} & \textbf{Rủi ro/ghi chú} \\
-\hline
-\endhead
+Quy trình phân tích FP/FN được tóm tắt như sau:
 
-XSS CRS & \path|941100|, \path|941160|, \path|941390| & Giảm FP từ các rule XSS tổng quát, tránh trùng logic với XSS v2. & Cần bảo đảm XSS v2 cover đủ nhóm tấn công trong phạm vi. \\
-\hline
-SQLi CRS & \path|942100|, \path|942131|, \path|942370| & Giảm FP từ libinjection, character anomaly và rule SQLi quá rộng. & Tắt \path|942100| là trade-off vì mất một heuristic rộng. \\
-\hline
-Protocol/character & \path|920230|, \path|920272|, \path|920273| & Một số rule quá nghiêm với traffic benchmark hoặc input encoded hợp lệ. & Cần đánh giá lại nếu triển khai production. \\
-\hline
-RCE/Shell & \path|932120|, \path|932130|, \path|932231| & Giảm FP trên ký tự shell-like và nội dung ngoài phạm vi XSS/SQLi. & Rủi ro trung bình vì giảm coverage ngoài phạm vi đề tài. \\
-\hline
-Nhóm khác & \path|933161|, \path|934101| và một số rule lẻ & Loại bỏ các nguồn FP phát hiện qua audit log và benchmark. & Cần ghi nhận lý do tuning theo từng môi trường. \\
-\hline
-\end{longtable}
-}
+\begin{enumerate}
+    \item Tách danh sách FN và FP từ báo cáo benchmark.
+    \item Với FN, phân loại payload theo kỹ thuật bypass và lớp rule liên quan.
+    \item Với FP, đọc audit log để xác định rule ID và anomaly score đóng góp.
+    \item Kiểm tra thủ công các mẫu đại diện để tránh kết luận dựa trên nhãn sai.
+    \item Đề xuất thay đổi rule hoặc tuning exclusions dựa trên nhóm lỗi có tần suất cao.
+    \item Chạy lại benchmark để xác nhận thay đổi không làm suy giảm chỉ số khác ngoài mức chấp nhận.
+\end{enumerate}
 
-Cần nhấn mạnh rằng tuning exclusions là cấu hình phục vụ nghiên cứu và benchmark cho phạm vi XSS/SQLi. Nếu áp dụng trong production, người vận hành cần đánh giá lại theo traffic thật, loại ứng dụng, rủi ro cần bảo vệ và yêu cầu compliance. Đặc biệt, nhóm RCE/Shell và một số heuristic rộng của CRS không nên bị tắt mặc định nếu hệ thống cần bảo vệ toàn diện hơn ngoài XSS và SQLi.
+Cách phân tích này cũng giúp giải thích kết quả định lượng. Ví dụ, nếu FPR giảm nhưng recall cũng giảm mạnh, cần xem nhóm attack nào bị ảnh hưởng bởi tuning. Ngược lại, nếu FPR giảm trong khi recall giữ ổn định, có thể lập luận rằng tuning đã loại bỏ nhiễu mà không làm mất coverage chính trong phạm vi đánh giá.
 
-Phần thiết kế tuning này là cơ sở kỹ thuật để trả lời RQ4 ở chương đánh giá. Kết luận về tuning không thể chỉ dựa trên việc số FP giảm, mà phải kiểm tra đồng thời FPR, recall và nhóm rule bị vô hiệu hóa để thấy rõ trade-off bảo mật.
+\section{Quy trình chạy thí nghiệm và so sánh}
+\label{sec:experiment-procedure}
 
-\section{Khả năng bảo trì và mở rộng}
-\label{sec:solution-maintainability}
+Quy trình chạy thí nghiệm được thiết kế theo hướng lặp để phù hợp với quá trình phát triển rule. Mỗi vòng gồm chuẩn bị cấu hình, chạy benchmark, phân tích kết quả, điều chỉnh rule hoặc tuning, rồi chạy lại để so sánh. Vòng tuning đã được minh họa ở Hình~\ref{fig:tuning-iterative-process}; trong chương này, quy trình đó được cụ thể hóa thành các bước chạy thí nghiệm để so sánh các cấu hình.
 
-Một hạn chế lớn của rule enumeration-based là regex dễ trở nên dài, khó đọc và khó kiểm thử khi danh sách payload tăng lên. Giải pháp v2 khắc phục bằng cách tổ chức rule theo namespace và layer rõ ràng. Dải \path|9942xxx| được dành cho XSS, dải \path|9943xxx| được dành cho SQLi. Trong mỗi dải, các rule được nhóm theo kỹ thuật: core, structural, encoded, DOM, advanced đối với XSS; classic, blind, error/OOB, advanced và heuristic đối với SQLi.
+Một phiên thí nghiệm hoàn chỉnh gồm các bước sau:
 
-Cách tổ chức này giúp quá trình bảo trì có quy trình rõ hơn. Khi xuất hiện một bypass mới, người phát triển không cần thêm payload vào một regex lớn. Thay vào đó, có thể phân loại bypass thuộc nhóm nào: encoding, DOM context, protocol URI, time-based blind, comment obfuscation hay schema enumeration. Sau đó rule mới được thêm vào lớp tương ứng hoặc rule hiện có được chỉnh sửa có kiểm soát. Việc benchmark lại sau thay đổi giúp kiểm tra tác động tới cả recall và FPR.
+\begin{enumerate}
+    \item Chọn cấu hình cần đánh giá, ví dụ CRS baseline, enumeration-based rules, custom rules v2 chưa tuning hoặc custom rules v2 sau tuning.
+    \item Khởi động hoặc reload môi trường WAF với đúng rule set, paranoia level và anomaly threshold.
+    \item Xóa hoặc tách audit log của phiên chạy trước để tránh trộn kết quả.
+    \item Chạy benchmark trên dataset malicious và benign đã chuẩn hóa.
+    \item Sinh báo cáo TP, TN, FP, FN và các metrics tương ứng.
+    \item Thu thập danh sách FN/FP và phân tích audit log theo rule ID.
+    \item So sánh kết quả giữa các cấu hình bằng cùng công thức và cùng dataset.
+    \item Nếu có thay đổi rule/tuning, lặp lại các bước trên để xác nhận tác động.
+\end{enumerate}
 
-Message, tag, severity và rule ID cũng hỗ trợ phân tích audit log. Khi request bị chặn, người vận hành có thể biết rule nào khớp, thuộc lớp nào, severity bao nhiêu và đóng góp điểm như thế nào vào anomaly score. Điều này giúp giải pháp dễ giải thích hơn so với mô hình AI black-box hoặc regex monolithic không có phân tách kỹ thuật rõ ràng.
+Đối với RQ1, thí nghiệm trọng tâm là so sánh enumeration-based XSS rules với context-aware XSS v2 trên cùng dữ liệu benign/malicious. Nếu context-aware rules có FPR thấp hơn trong khi recall không giảm đáng kể, có thể xem đây là bằng chứng ủng hộ hướng thiết kế theo ngữ cảnh.
 
-Các nguyên tắc bảo trì này liên hệ trực tiếp với RQ1 và RQ3: nếu rule được tổ chức theo execution context và semantic pattern, việc mở rộng coverage không cần quay lại cách liệt kê payload đơn lẻ. Chúng cũng tạo cơ sở để thảo luận RQ5, vì khả năng giải thích bằng rule ID, message và severity là một ưu điểm quan trọng của WAF rule-based so với mô hình AI black-box.
+Đối với RQ2, thí nghiệm tập trung vào các payload encoded/obfuscated. Kết quả được đọc thông qua số FN còn lại và phân nhóm bypass. Nếu FN chủ yếu rơi vào một kỹ thuật encoding chưa được xử lý, đó là cơ sở để mở rộng decode pipeline hoặc bổ sung rule ở lớp encoded.
 
-Tuy nhiên, maintainability không chỉ đến từ việc chia file và đặt ID. Rule mới vẫn cần được viết theo nguyên tắc generalized, tránh quá đặc thù cho một payload benchmark. Nếu mỗi bypass mới chỉ được xử lý bằng cách thêm đúng chuỗi payload đó, hệ thống sẽ dần quay lại enumeration-based. Vì vậy, khi mở rộng rule, cần ưu tiên mô tả kỹ thuật hoặc ngữ cảnh tấn công ở mức tổng quát hơn.
+Đối với RQ3, thí nghiệm tập trung vào coverage SQLi theo nhóm kỹ thuật và DBMS. Thay vì chỉ báo cáo tổng số payload bị chặn, cần xem rule có phát hiện được nhiều cấu trúc semantic như \path|UNION SELECT|, stacked query, blind SQLi, error-based SQLi, OOB SQLi và schema enumeration hay không.
 
-\section{Giới hạn của giải pháp}
-\label{sec:solution-limitations}
+Đối với RQ4, thí nghiệm so sánh trước và sau tuning exclusions trên cùng dataset. Kết luận chỉ có giá trị nếu báo cáo đồng thời FPR, recall và các nhóm rule bị vô hiệu hóa. Nếu tuning giảm FP bằng cách tắt rule ngoài phạm vi XSS/SQLi, cần ghi nhận rủi ro đó trong phần thảo luận.
 
-Giải pháp được đề xuất có phạm vi và giới hạn rõ ràng. Thứ nhất, custom rules v2 không thay thế hoàn toàn OWASP CRS. CRS vẫn cung cấp nhiều nhóm bảo vệ ngoài XSS/SQLi, cơ chế anomaly scoring và rule chặn tổng hợp. Bộ rules v2 chỉ tập trung chuyên sâu vào hai nhóm tấn công chính của khóa luận là XSS và SQL Injection.
-
-Thứ hai, giải pháp không tuyên bố phát hiện mọi biến thể XSS/SQLi trong tương lai. Các kỹ thuật lẩn tránh web thay đổi liên tục, trong khi rule-based detection luôn phụ thuộc vào những cấu trúc có thể mô tả bằng pattern. Lớp advanced/heuristic giúp mở rộng coverage nhưng cũng không thể thay thế hoàn toàn quá trình theo dõi log và cập nhật rule định kỳ.
-
-Thứ ba, một số heuristic nâng cao có thể vẫn tạo false positives trong các ứng dụng hợp lệ có chứa HTML, JavaScript hoặc SQL snippets. Ví dụ, một hệ thống học lập trình, diễn đàn kỹ thuật hoặc công cụ quản trị cơ sở dữ liệu có thể nhận input trông giống payload tấn công nhưng thực chất là nội dung hợp lệ. Với các ứng dụng như vậy, cần tuning riêng theo context.
-
-Thứ tư, Base64 decode cần được áp dụng cẩn trọng. Nhiều ứng dụng hợp lệ có thể truyền dữ liệu Base64 như ảnh, token hoặc blob dữ liệu. Nếu chỉ thấy input có dạng Base64 mà chặn ngay thì FPR sẽ cao. Vì vậy, giải pháp chỉ xem Base64 là lớp trung gian: decode rồi kiểm tra lại nội dung đã decode có execution context hoặc semantic SQLi pattern hay không.
-
-Cuối cùng, tuning exclusions trong môi trường benchmark không phải cấu hình production mặc định. Việc tắt một số rule CRS, đặc biệt nhóm libinjection SQLi hoặc RCE/Shell, tạo ra trade-off bảo mật. Trong phạm vi khóa luận, trade-off này được ghi nhận để tập trung đánh giá XSS/SQLi generalized rules và giảm FP trong benchmark. Trong triển khai thực tế, các exclusions cần được xem xét lại theo yêu cầu bảo vệ của hệ thống.
+Đối với RQ5, đánh giá không chỉ dựa trên metric phân loại. WAF rule-based được phân tích theo khả năng giải thích qua rule ID và audit log, độ trễ khi chạy inline, khả năng cập nhật bằng cách sửa rule, và chi phí vận hành. AI-based detection được xem là hướng tham chiếu để thảo luận ưu/nhược điểm, đặc biệt khi mô hình không được chạy trực tiếp trong cùng pipeline WAF.
 
 \section{Tổng kết chương}
 \label{sec:chapter4-summary}
 
-Chương này đã trình bày thiết kế giải pháp đề xuất cho bài toán tối ưu bộ luật WAF. Giải pháp được xây dựng trên ModSecurity/OWASP CRS, bổ sung hai nhóm custom generalized rules v2: XSS trong dải \path|9942xxx| và SQLi trong dải \path|9943xxx|. XSS v2 sử dụng hướng context-aware với các lớp core, structural, encoded, DOM và advanced. SQLi v2 sử dụng hướng semantic-based với các lớp classic, blind, error/OOB, advanced và heuristic.
+Chương này đã trình bày thiết kế thực nghiệm và phương pháp đánh giá cho giải pháp WAF generalized rules. Nội dung bao gồm mối liên hệ giữa các câu hỏi nghiên cứu và thí nghiệm, môi trường ModSecurity/CRS, các cấu hình baseline, dữ liệu thực nghiệm, pipeline chuẩn hóa/làm sạch dữ liệu, benchmark framework, confusion matrix, các chỉ số đánh giá và phương pháp phân tích FP/FN.
 
-Chương cũng đã trình bày decode pipeline, cách rule v2 tích hợp với anomaly scoring của CRS, chiến lược tuning exclusions để giảm false positives, khả năng bảo trì và các giới hạn của giải pháp. Những thiết kế này sẽ được kiểm chứng định lượng ở Chương 5 thông qua benchmark trên các dataset đã trình bày ở Chương 3.
+Thiết kế đánh giá này tạo cơ sở để Chương 5 trình bày kết quả thực nghiệm. Các kết quả đó cần được đọc theo từng câu hỏi nghiên cứu, đặc biệt là quan hệ giữa recall và false positive rate, tác động của decode pipeline, hiệu quả của SQLi semantic rules, ảnh hưởng của tuning exclusions và trade-off giữa WAF rule-based với hướng AI-based detection.
