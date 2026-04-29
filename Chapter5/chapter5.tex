@@ -1,22 +1,104 @@
-\chapter{Kết quả và đánh giá}
+\chapter{Kết quả thực nghiệm và đánh giá}
 \label{chap:results}
 
-\section{Detection Rate}
-\label{sec:detection-rate}
+\section{Kịch bản đánh giá và liên kết với câu hỏi nghiên cứu}
+\label{sec:results-evaluation-scenarios}
 
-So sánh trên GoTestWAF dataset.
+\subsection{Các cấu hình được so sánh}
+\label{subsec:results-comparison-configurations}
 
-\section{False Positive Reduction}
-\label{sec:fp-reduction}
+\subsection{Ma trận câu hỏi nghiên cứu, dữ liệu và chỉ số đánh giá}
+\label{subsec:results-rq-dataset-metrics}
 
-Kết quả tuning giảm 97% FP.
+\subsection{Nguyên tắc diễn giải kết quả}
+\label{subsec:results-interpretation-principles}
 
-\section{Performance Metrics}
-\label{sec:performance}
+\section{RQ1 -- Đánh giá khả năng giảm false positives của context-aware XSS rules}
+\label{sec:rq1-context-aware-xss-fp}
 
-Throughput và latency.
+\subsection{Kết quả trên Mereani clean}
+\label{subsec:rq1-mereani-clean-results}
 
-\section{So sánh với Rule gốc}
-\label{sec:comparison-original}
+\subsection{Kết quả trên XSSed-DMOZ clean}
+\label{subsec:rq1-xssed-dmoz-clean-results}
 
-Bảng so sánh chi tiết.
+\subsection{Phân tích nguyên nhân giảm false positives}
+\label{subsec:rq1-fp-reduction-analysis}
+
+\subsection{Kết luận cho RQ1}
+\label{subsec:rq1-conclusion}
+
+\section{RQ2 -- Đánh giá multi-decode pipeline với payload encoded và obfuscated}
+\label{sec:rq2-decode-pipeline-results}
+
+\subsection{Kết quả trên GoTestWAF}
+\label{subsec:rq2-gotestwaf-results}
+
+\subsection{Coverage theo nhóm encoding và obfuscation}
+\label{subsec:rq2-technique-coverage}
+
+\subsection{Phân tích false negatives còn lại}
+\label{subsec:rq2-false-negatives-analysis}
+
+\subsection{Kết luận cho RQ2}
+\label{subsec:rq2-conclusion}
+
+\section{RQ3 -- Đánh giá coverage của semantic-based SQLi rules}
+\label{sec:rq3-semantic-sqli-coverage}
+
+\subsection{Coverage theo nhóm kỹ thuật SQL Injection}
+\label{subsec:rq3-sqli-technique-coverage}
+
+\subsection{So sánh với rule SQLi enumeration-based}
+\label{subsec:rq3-enumeration-comparison}
+
+\subsection{Phân tích false negatives SQLi}
+\label{subsec:rq3-sqli-false-negatives}
+
+\subsection{Kết luận cho RQ3}
+\label{subsec:rq3-conclusion}
+
+\section{RQ4 -- Đánh giá tác động của tuning exclusions}
+\label{sec:rq4-tuning-exclusions-impact}
+
+\subsection{So sánh trước và sau tuning}
+\label{subsec:rq4-before-after-tuning}
+
+\subsection{Phân tích các nhóm rule gây false positives}
+\label{subsec:rq4-fp-rule-groups}
+
+\subsection{Trade-off giữa FPR và recall}
+\label{subsec:rq4-fpr-recall-tradeoff}
+
+\subsection{Kết luận cho RQ4}
+\label{subsec:rq4-conclusion}
+
+\section{RQ5 -- So sánh với AI-based detection}
+\label{sec:rq5-ai-based-comparison}
+
+\subsection{Kết quả AI tham chiếu từ tài liệu}
+\label{subsec:rq5-ai-reference-results}
+
+\subsection{Hiệu năng thực nghiệm của WAF rule-based}
+\label{subsec:rq5-waf-performance-results}
+
+\subsection{So sánh về khả năng giải thích và vận hành}
+\label{subsec:rq5-interpretability-operation-comparison}
+
+\subsection{So sánh về độ trễ, cập nhật và triển khai real-time}
+\label{subsec:rq5-latency-update-deployment-comparison}
+
+\subsection{Kết luận cho RQ5}
+\label{subsec:rq5-conclusion}
+
+\section{Tổng hợp kết quả theo câu hỏi nghiên cứu}
+\label{sec:results-summary-by-rq}
+
+\subsection{Bảng tổng hợp kết luận theo RQ}
+\label{subsec:summary-rq-conclusions}
+
+\subsection{Các phát hiện chính}
+\label{subsec:summary-main-findings}
+
+\subsection{Chuyển tiếp sang chương thảo luận}
+\label{subsec:summary-transition-to-discussion}

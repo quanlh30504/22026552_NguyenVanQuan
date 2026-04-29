@@ -12,29 +12,16 @@ Về bản chất, WAF là một cơ chế phòng thủ dựa trên luật. Mỗ
 
 Trong bối cảnh nghiên cứu này, vấn đề trọng tâm không phải là xây dựng một WAF hoàn toàn mới, mà là tối ưu bộ luật phát hiện XSS và SQLi trong môi trường ModSecurity/OWASP CRS. Đề tài tập trung vào câu hỏi: làm thế nào để các rule vẫn phát hiện được các kỹ thuật bypass phổ biến, nhưng không chặn nhầm quá nhiều request hợp lệ? Đây là bài toán quan trọng vì false positive cao có thể khiến WAF khó triển khai trong thực tế. Nếu WAF liên tục chặn nhầm người dùng thật, quản trị viên thường buộc phải tắt rule hoặc tăng ngưỡng chặn, từ đó làm giảm hiệu quả bảo vệ.
 
-\section{OWASP CRS, anomaly scoring và hướng mở rộng rule}
-\label{sec:problem-context}
+\section{Thực trạng WAF rule-based và vấn đề nghiên cứu}
+\label{sec:problem-overview}
 
-OWASP CRS xử lý request bằng cơ chế \textbf{Anomaly Scoring}. Thay vì mọi rule đều chặn request ngay lập tức, mỗi rule khi khớp sẽ cộng một số điểm vào tổng điểm bất thường của request. Các rule nghiêm trọng hơn cộng nhiều điểm hơn: CRITICAL thường tương ứng 5 điểm, ERROR 4 điểm, WARNING 3 điểm và NOTICE 2 điểm~\cite{owasp-crs-annotated}. Request bị chặn khi tổng điểm vượt ngưỡng cấu hình, ví dụ ngưỡng inbound anomaly score bằng 5. CRS cũng tổ chức luật theo \textbf{Paranoia Levels} (PL1--PL4). PL càng cao thì càng nhiều rule được kích hoạt, khả năng phát hiện tăng lên nhưng đồng thời nguy cơ false positive cũng tăng~\cite{paranoia-levels-study}.
+OWASP CRS là một nền tảng quan trọng vì cung cấp sẵn nhiều luật phát hiện tấn công web phổ biến. CRS cũng dùng cơ chế cộng điểm bất thường: mỗi dấu hiệu đáng ngờ làm request tăng điểm, và request chỉ bị chặn khi tổng điểm vượt ngưỡng cấu hình. Cách làm này giúp WAF kết hợp nhiều tín hiệu khác nhau thay vì phụ thuộc vào một rule đơn lẻ. Tuy nhiên, khi cấu hình nghiêm ngặt hơn hoặc bật nhiều rule hơn, WAF thường phát hiện được nhiều dấu hiệu hơn nhưng cũng dễ chặn nhầm request hợp lệ hơn~\cite{owasp-crs-annotated,paranoia-levels-study,waf-benchmark-2024}.
 
-Các nghiên cứu gần đây cho thấy CRS ở cấu hình nghiêm ngặt có thể gặp thách thức đáng kể về false positives, đặc biệt khi áp dụng cho traffic thực tế đa dạng~\cite{waf-benchmark-2024}. Bên cạnh đó, các bộ test như GoTestWAF được thiết kế để tạo ra nhiều payload có khả năng bypass WAF thông qua mã hóa, biến đổi cú pháp hoặc khai thác điểm yếu trong regex~\cite{gotestwaf,wallarm-waf-bypass}. Theo kết quả phân tích trong nghiên cứu nền tảng, CRS gốc vẫn để lọt một lượng đáng kể payload bypass; trong đó XSS và SQLi chiếm tỷ lệ lớn trong các bypass cần ưu tiên xử lý~\cite{researcher-group-2025}.
+Một hướng cải thiện phổ biến là bổ sung custom rules cho các nhóm tấn công cần ưu tiên, chẳng hạn XSS và SQL Injection. Các nghiên cứu trước cho thấy việc bổ sung rule có thể cải thiện khả năng phát hiện trên benchmark~\cite{researcher-group-2025}. Tuy nhiên, nhiều rule kiểu này vẫn dựa nhiều vào cách liệt kê dấu hiệu đã biết: liệt kê tên hàm JavaScript, tag HTML, từ khóa SQL hoặc một số payload cụ thể. Cách tiếp cận này dễ hiểu và có hiệu quả với các mẫu đã biết, nhưng có ba vấn đề chính ở mức tổng quan.
 
-Một nhóm nghiên cứu đã đề xuất mở rộng CRS bằng 146 custom rules và đạt detection rate cao hơn trên GoTestWAF~\cite{researcher-group-2025}. Đây là baseline quan trọng vì cho thấy việc bổ sung custom rules có thể cải thiện khả năng phát hiện của CRS. Tuy nhiên, khi phân tích riêng các rule dành cho XSS và SQLi, cách tiếp cận này vẫn còn thiên về \textbf{enumeration-based detection}: liệt kê các hàm, tag, từ khóa hoặc payload đã biết rồi so khớp request với danh sách đó. Vì vậy, cần xem xét rõ các hạn chế của hướng enumeration-based trước khi đề xuất phương pháp tối ưu hơn.
+Thứ nhất, danh sách liệt kê khó bao phủ hết các biến thể tấn công. Kẻ tấn công có thể thay đổi cú pháp, mã hóa payload, chèn khoảng trắng bất thường hoặc dùng cách gọi hàm khác để né rule. Thứ hai, rule quá rộng có thể chặn nhầm dữ liệu hợp lệ, vì người dùng có thể nhập nội dung kỹ thuật chứa HTML, JavaScript hoặc SQL mà không có ý định tấn công. Thứ ba, khi danh sách payload ngày càng dài, rule trở nên khó đọc, khó kiểm thử và khó bảo trì.
 
-\section{Hạn chế của phương pháp enumeration-based}
-\label{sec:enumeration-limitations}
-
-Phương pháp enumeration-based có ưu điểm là dễ triển khai và có thể nhanh chóng bắt được các payload đã biết. Tuy nhiên, khi dùng làm cơ sở chính cho WAF, phương pháp này bộc lộ nhiều hạn chế.
-
-Thứ nhất, \textbf{coverage phụ thuộc mạnh vào danh sách đã liệt kê}. Nếu rule XSS chỉ liệt kê một số hàm như \path|alert|, \path|confirm|, \path|prompt|, \path|eval| hoặc \path|setInterval| thì các biến thể như \path|fetch()|, \path|setTimeout()|, template literals, optional chaining hoặc gọi hàm thông qua bracket notation có thể bị bỏ sót. Tương tự, nếu rule SQLi chỉ bắt một vài payload benchmark cụ thể thì các biến thể cùng bản chất nhưng khác cú pháp có thể đi qua WAF.
-
-Thứ hai, \textbf{thiếu ngữ cảnh dễ dẫn tới false positives}. Ví dụ, nếu rule bắt mọi chuỗi dạng \path|on\w+=| thì cả payload độc hại như \path|onerror=alert(1)| và mã hợp lệ như \path|onsubmit="validate()"| đều có thể bị chặn. Điểm khác biệt quan trọng không nằm ở việc có event handler hay không, mà nằm ở giá trị phía sau event handler có thực thi hành vi nguy hiểm hay không.
-
-Thứ ba, \textbf{khả năng chống encoding và obfuscation còn hạn chế}. Payload tấn công có thể được mã hóa URL nhiều lớp, dùng HTML entity, JavaScript escape, null byte, khoảng trắng bất thường hoặc Base64 để né regex trực tiếp~\cite{encoding-bypass-analysis,encoding-multilayer-2022}. Nếu rule chỉ decode một lớp hoặc chỉ so khớp trên chuỗi gốc thì khả năng bỏ sót tăng lên.
-
-Thứ tư, \textbf{khả năng bảo trì giảm khi danh sách payload ngày càng dài}. Regex dạng liệt kê thường trở nên phức tạp, lặp lại ở nhiều input vector và khó giải thích. Khi xuất hiện kỹ thuật mới, người phát triển rule dễ rơi vào cách nối thêm payload cụ thể vào regex lớn, làm hệ thống dần khó đọc, khó kiểm thử và khó tuning.
-
-Từ các hạn chế trên, khóa luận lựa chọn hướng \textbf{generalized rules}: thay vì chỉ liệt kê payload cụ thể, rule cần mô tả hành vi và ngữ cảnh tấn công ở mức tổng quát hơn. Với XSS, điều này nghĩa là phát hiện \textit{execution context}: tag, event handler, URI scheme hoặc DOM sink có khả năng thực thi JavaScript. Với SQLi, điều này nghĩa là phát hiện \textit{semantic pattern}: cấu trúc injection như \path|UNION SELECT|, stacked query, boolean bypass, time-based function, error-based extraction hoặc truy cập schema hệ thống, thay vì chỉ bắt một payload cụ thể.
+Từ thực trạng trên, khóa luận lựa chọn hướng \textbf{generalized rules}: thay vì chỉ hỏi ``request có chứa từ khóa nguy hiểm hay không'', rule cần xét xem dữ liệu đó có nằm trong ngữ cảnh nguy hiểm hay không. Với XSS, trọng tâm là ngữ cảnh có thể thực thi JavaScript. Với SQLi, trọng tâm là cấu trúc có khả năng làm thay đổi ý nghĩa truy vấn. Chương 2 sẽ trình bày chi tiết hơn cơ sở lý thuyết, các phương pháp liên quan và hạn chế của từng hướng; Chương 3 trình bày giải pháp đề xuất dựa trên các phân tích đó.
 
 \section{Mục tiêu nghiên cứu}
 \label{sec:objectives}
@@ -74,7 +61,7 @@ Từ mục tiêu trên, khóa luận tập trung trả lời các câu hỏi ngh
     \item \textbf{RQ5:} Khi so sánh với hướng AI-based detection, WAF rule-based sau tuning có những ưu và nhược điểm gì về khả năng giải thích, độ trễ, khả năng cập nhật và tính phù hợp với triển khai real-time?
 \end{itemize}
 
-Các câu hỏi này định hướng cấu trúc của các chương sau. Chương 3 trình bày phương pháp nghiên cứu và giải pháp đề xuất; Chương 4 trình bày thiết kế thực nghiệm và phương pháp đánh giá; Chương 5 trình bày kết quả thực nghiệm; và Chương 6 thảo luận ý nghĩa, giới hạn và trade-off của các kết quả đó.
+Các câu hỏi này định hướng cấu trúc của các chương sau. Chương 2 phân tích cơ sở lý thuyết, nghiên cứu liên quan và hạn chế của các phương pháp hiện có; Chương 3 trình bày phương pháp nghiên cứu và giải pháp đề xuất; Chương 4 trình bày thiết kế thực nghiệm và phương pháp đánh giá; Chương 5 trình bày kết quả thực nghiệm; và Chương 6 thảo luận ý nghĩa, giới hạn và trade-off của các kết quả đó.
 
 \section{Phạm vi nghiên cứu}
 \label{sec:scope}
